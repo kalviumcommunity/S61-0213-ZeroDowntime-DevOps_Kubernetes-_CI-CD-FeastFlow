@@ -404,3 +404,274 @@ Resource Management for Pods
 
 By mastering Kubernetes application lifecycle mechanics, you gain the ability to deploy confidently, debug failures quickly, and operate systems reliably — the core responsibility of any DevOps or platform engineer.
 
+---
+
+# 🍽 Feast Flow
+
+## CI/CD Pipeline Execution Model & Responsibility Boundaries
+
+---
+
+## 📌 Project Overview
+
+Feast Flow is a cloud-native DevOps implementation designed to eliminate service disruptions during application updates.  
+
+Previously, pricing algorithm and restaurant menu updates required full system restarts, causing 15-minute downtime during peak dinner hours across 30+ cities.
+
+This project transitions from manual deployments to a fully automated CI/CD pipeline using:
+
+- Docker (Containerization)
+- GitHub Actions (CI/CD Automation)
+- Kubernetes (Container Orchestration)
+- AWS Cloud Infrastructure
+
+The goal is zero-downtime deployments, scalable infrastructure, and reliable automated releases.
+
+---
+
+# 🚀 CI/CD Execution Model (Big Picture)
+
+Code Change
+↓
+CI Pipeline (Build & Test)
+↓
+Docker Image Creation
+↓
+CD Pipeline (Deploy)
+↓
+Kubernetes Cluster (AWS)
+↓
+Rolling Update (Zero Downtime)
+
+
+Each stage has clear responsibilities and ownership.
+
+---
+
+# 🔄 Continuous Integration (CI)
+
+CI is responsible for validating code changes.
+
+## CI Responsibilities
+
+- Checkout source code
+- Run automated tests
+- Perform static checks (if configured)
+- Build Docker image
+- Tag Docker image
+- Push image to container registry
+- Fail fast if build or tests fail
+
+## Trigger Conditions
+
+- Pull Requests
+- Push to branches
+
+## Key Principle
+
+CI answers:
+
+> “Is this code safe to merge?”
+
+CI does NOT deploy to production.
+
+---
+
+# 🚀 Continuous Deployment (CD)
+
+CD is responsible for safely releasing validated artifacts.
+
+## CD Responsibilities
+
+- Pull pre-built Docker image from registry
+- Update Kubernetes Deployment manifests
+- Apply manifests to cluster
+- Perform rolling updates
+- Manage rollback if necessary
+
+## Key Principle
+
+CD answers:
+
+> “How do we safely run this version in production?”
+
+CD does NOT rebuild code. It deploys images created by CI.
+
+---
+
+# 📍 Responsibility Breakdown
+
+| Action | Owner |
+|--------|--------|
+| Writing business logic | Application Code |
+| Writing unit tests | Application Code |
+| Running tests | CI Pipeline |
+| Building Docker image | CI Pipeline |
+| Tagging & pushing image | CI Pipeline |
+| Updating Kubernetes manifests | CD Pipeline |
+| Applying manifests to cluster | CD Pipeline |
+| Restarting failed pods | Kubernetes |
+| Scaling replicas | Kubernetes |
+
+---
+
+# 🧠 Responsibility Boundaries
+
+## 1️⃣ Application Code
+
+- Implements pricing logic and menu updates
+- Defines tests
+- Does NOT directly deploy
+
+---
+
+## 2️⃣ CI Pipeline
+
+- Validates code
+- Builds Docker images
+- Pushes artifacts
+- Prevents broken code from moving forward
+
+---
+
+## 3️⃣ CD Pipeline
+
+- Deploys validated Docker images
+- Updates Kubernetes resources
+- Ensures safe production rollout
+
+---
+
+## 4️⃣ Infrastructure (Kubernetes + AWS)
+
+- Runs containers
+- Maintains replica count
+- Performs rolling updates
+- Self-heals failed pods
+- Ensures high availability
+
+---
+
+# 🔐 Why Separation of Responsibilities Matters
+
+Before DevOps:
+- Manual deployment
+- Full system restart
+- 15-minute downtime
+- High production risk
+
+After DevOps:
+- Automated validation
+- Rolling deployments
+- Zero downtime
+- Faster and safer releases
+
+Benefits:
+- Safe Pull Requests
+- Predictable deployments
+- Reduced human error
+- Easy rollback capability
+- Improved scalability
+
+---
+
+# ⚠ Safe Pipeline Modifications
+
+Pipeline files are production-critical.
+
+Modifying:
+
+- Test steps → affects CI validation
+- Docker build steps → affects artifacts
+- Deployment steps → affects live systems
+
+Therefore:
+
+- Pipeline files must be version-controlled
+- Changes require review
+- Protected branches should be enforced
+- Modifications must be minimal and intentional
+
+---
+
+# ❌ Common Misconceptions
+
+CI deploys code → ❌ Incorrect  
+CD rebuilds application → ❌ Incorrect  
+Pipelines replace Kubernetes → ❌ Incorrect  
+
+Correct Mental Model:
+
+- CI builds confidence  
+- CD moves artifacts  
+- Kubernetes runs and heals systems  
+
+---
+
+# 🎯 Functional Requirements
+
+- CI pipeline builds and validates Docker images
+- CD pipeline deploys to Kubernetes automatically
+- Kubernetes restarts failed containers
+- Application remains accessible during updates
+
+---
+
+# ⚙ Non-Functional Requirements
+
+- Reliability: System recovers from pod failure
+- Scalability: Supports multiple replicas
+- Consistency: Same Docker image runs everywhere
+- Automation: No manual deployment steps
+
+---
+
+# 🧪 Deployment & Testing Strategy
+
+## Testing
+
+- CI validates builds
+- Containers run locally and in cluster
+- Manual validation of rolling updates
+- Failure simulation (pod deletion)
+
+## Deployment Flow
+
+1. Build Docker image via CI
+2. Push image to registry
+3. Deploy via Kubernetes manifests
+4. Validate service availability
+
+---
+
+# 🏆 Success Metrics
+
+- Fully automated CI/CD pipeline
+- Successful Kubernetes deployment
+- Demonstrated rolling update
+- Stable public endpoint
+- Clear documentation and demo readiness
+
+---
+
+# 📌 Final Outcome
+
+Feast Flow now supports:
+
+- Zero-downtime deployments
+- Automated CI/CD workflows
+- Scalable cloud infrastructure
+- Reliable production releases
+- Faster feature delivery across 30+ cities
+
+---
+
+## 🔥 Key Takeaway
+
+This project demonstrates a clear CI/CD execution model where:
+
+- CI validates code  
+- CD deploys artifacts  
+- Kubernetes ensures reliability  
+
+Separation of responsibilities enables safe releases, predictable deployments, and production-grade DevOps workflows.
