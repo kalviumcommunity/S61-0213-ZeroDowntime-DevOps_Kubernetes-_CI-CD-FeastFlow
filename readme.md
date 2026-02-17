@@ -794,3 +794,248 @@ DevOps environment successfully configured and ready for containerized and Kuber
 ![Commands Screenshot](screenshot/Commands_screenshort.png)
 
 ![Environment Setup](screenshot/image.png)
+
+
+---
+
+# 🍽 Feast Flow – Sprint #3
+# Low-Level Design (LLD)
+## DevOps with Kubernetes & CI/CD
+
+---
+
+# 1️⃣ Introduction
+
+This document represents the Low-Level Design (LLD) for the Feast Flow DevOps architecture.
+
+The goal of this LLD is to define implementation-level details of:
+
+- Application container structure
+- CI pipeline execution
+- CD pipeline deployment mechanics
+- Kubernetes resource configuration
+- Pod-level behavior
+- Data and control flow
+- Assumptions and constraints
+
+This document is implementation-ready and can be used by another engineer to build the system.
+
+---
+
+# 2️⃣ System Components & Internal Structure
+
+## 2.1 Application Container
+
+**Responsibility:**
+- Hosts Feast Flow web application
+- Handles pricing algorithm updates
+- Handles restaurant menu updates
+- Exposes HTTP endpoint
+
+**Technology:**
+- Docker container
+- Single application container per pod
+
+---
+
+**Responsibility:**
+- Validate code
+- Run tests
+- Build Docker image
+- Tag and push image to registry
+
+---
+
+
+**Responsibility:**
+- Deploy validated Docker image
+- Update Kubernetes Deployment
+- Trigger rolling update
+
+---
+
+
+**Resources Used:**
+- Deployment
+- Service
+- ConfigMap
+- Secret
+
+---
+
+## 2.5 Configuration & Secret Handling
+
+- Non-sensitive config → ConfigMap
+- Sensitive data → Kubernetes Secret
+- Environment variables injected into container
+
+---
+
+# 3️⃣ CI Pipeline – Step-by-Step Execution
+
+## Trigger Conditions
+
+- On Pull Request to main
+- On push to main branch
+
+---
+
+## CI Execution Flow
+
+### Step 1 – Checkout Code
+**Input:** GitHub repository  
+**Output:** Source code in runner environment  
+
+---
+
+### Step 2 – Install Dependencies
+**Purpose:** Prepare environment  
+
+---
+
+### Step 3 – Run Tests
+**Input:** Application source code  
+**Output:** Test result (pass/fail)  
+If failed → pipeline stops  
+
+---
+
+
+**Final Output of CI:**
+Docker image stored in container registry.
+
+CI ensures only tested images move forward.
+
+---
+
+# 4️⃣ CD Pipeline – Deployment Mechanics
+
+## Deployment Trigger
+
+- Triggered after successful CI
+- Runs only on main branch
+
+---
+
+## Deployment Steps
+
+### Step 1 – Authenticate to Kubernetes Cluster
+
+### Step 2 – Update Deployment Image
+
+### Step 3 – Apply Manifests
+
+---
+
+## Health Probes
+
+### Liveness Probe
+Checks application health endpoint.
+
+### Readiness Probe
+Ensures pod receives traffic only when ready.
+
+---
+
+# 7️⃣ Data & Control Flow
+
+## Code Change → CI
+
+1. Developer pushes code
+2. GitHub triggers CI
+3. Tests executed
+4. Docker image built
+5. Image pushed to registry
+
+---
+
+## Image → Registry → CD
+
+1. CD pipeline triggered
+2. Image tag selected
+3. Deployment updated
+4. Rolling update begins
+
+---
+
+## Deployment → Pod Rollout
+
+1. New pod created
+2. Health checks pass
+3. Old pod terminated
+4. No downtime
+
+---
+
+## User Request Flow
+
+User → LoadBalancer → Service → Pod → Application Container
+
+---
+
+# 8️⃣ Assumptions & Constraints
+
+## Assumptions
+
+- Single production environment
+- One application service
+- Manual rollback
+- Fixed replica count
+- No autoscaling
+
+---
+
+## Constraints
+
+- No service mesh
+- No advanced monitoring stack
+- No custom autoscaling
+- Limited cloud budget
+- Basic security configuration
+
+---
+
+# 9️⃣ Visual LLD Diagrams (To Be Added)
+
+The following diagrams must be exported as:
+
+- .png / .jpg / .jpeg
+
+Required Diagrams:
+
+1. CI/CD Execution Flow Diagram
+2. Kubernetes Resource Interaction Diagram
+3. Pod-Level Architecture Diagram
+
+Legend must explain:
+- Pipelines
+- Registry
+- Kubernetes resources
+- Control flow arrows
+
+Diagram link (if hosted) must be added in .txt file.
+
+---
+
+# 🔟 Final Outcome
+
+This Low-Level Design defines:
+
+- Internal DevOps system execution
+- CI/CD responsibility separation
+- Kubernetes deployment mechanics
+- Pod runtime behavior
+- Clear control and data flow
+
+This document serves as the final technical blueprint before implementation.
+
+---
+
+# 🔥 Key Principle
+
+CI builds confidence  
+CD moves artifacts  
+Kubernetes runs and heals systems  
+
+Clear separation ensures safe, predictable, zero-downtime deployments.
+
