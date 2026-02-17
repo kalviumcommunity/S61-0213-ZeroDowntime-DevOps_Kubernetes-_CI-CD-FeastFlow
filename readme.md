@@ -448,7 +448,7 @@ Each stage has clear responsibilities and ownership.
 
 ---
 
-# 🔄 Continuous Integration (CI)
+# Continuous Integration (CI)
 
 CI is responsible for validating code changes.
 
@@ -477,7 +477,7 @@ CI does NOT deploy to production.
 
 ---
 
-# 🚀 Continuous Deployment (CD)
+#  Continuous Deployment (CD)
 
 CD is responsible for safely releasing validated artifacts.
 
@@ -499,7 +499,7 @@ CD does NOT rebuild code. It deploys images created by CI.
 
 ---
 
-# 📍 Responsibility Breakdown
+# Responsibility Breakdown
 
 | Action | Owner |
 |--------|--------|
@@ -515,9 +515,9 @@ CD does NOT rebuild code. It deploys images created by CI.
 
 ---
 
-# 🧠 Responsibility Boundaries
+#  Responsibility Boundaries
 
-## 1️⃣ Application Code
+## 1️. Application Code
 
 - Implements pricing logic and menu updates
 - Defines tests
@@ -525,7 +525,7 @@ CD does NOT rebuild code. It deploys images created by CI.
 
 ---
 
-## 2️⃣ CI Pipeline
+## 2️. CI Pipeline
 
 - Validates code
 - Builds Docker images
@@ -534,7 +534,7 @@ CD does NOT rebuild code. It deploys images created by CI.
 
 ---
 
-## 3️⃣ CD Pipeline
+## 3️. CD Pipeline
 
 - Deploys validated Docker images
 - Updates Kubernetes resources
@@ -542,7 +542,7 @@ CD does NOT rebuild code. It deploys images created by CI.
 
 ---
 
-## 4️⃣ Infrastructure (Kubernetes + AWS)
+## 4️. Infrastructure (Kubernetes + AWS)
 
 - Runs containers
 - Maintains replica count
@@ -552,7 +552,7 @@ CD does NOT rebuild code. It deploys images created by CI.
 
 ---
 
-# 🔐 Why Separation of Responsibilities Matters
+#  Why Separation of Responsibilities Matters
 
 Before DevOps:
 - Manual deployment
@@ -575,7 +575,7 @@ Benefits:
 
 ---
 
-# ⚠ Safe Pipeline Modifications
+#  Safe Pipeline Modifications
 
 Pipeline files are production-critical.
 
@@ -594,11 +594,11 @@ Therefore:
 
 ---
 
-# ❌ Common Misconceptions
+#  Common Misconceptions
 
-CI deploys code → ❌ Incorrect  
-CD rebuilds application → ❌ Incorrect  
-Pipelines replace Kubernetes → ❌ Incorrect  
+CI deploys code →  Incorrect  
+CD rebuilds application →  Incorrect  
+Pipelines replace Kubernetes →  Incorrect  
 
 Correct Mental Model:
 
@@ -608,7 +608,7 @@ Correct Mental Model:
 
 ---
 
-# 🎯 Functional Requirements
+#  Functional Requirements
 
 - CI pipeline builds and validates Docker images
 - CD pipeline deploys to Kubernetes automatically
@@ -617,7 +617,7 @@ Correct Mental Model:
 
 ---
 
-# ⚙ Non-Functional Requirements
+#  Non-Functional Requirements
 
 - Reliability: System recovers from pod failure
 - Scalability: Supports multiple replicas
@@ -626,7 +626,7 @@ Correct Mental Model:
 
 ---
 
-# 🧪 Deployment & Testing Strategy
+#  Deployment & Testing Strategy
 
 ## Testing
 
@@ -644,7 +644,7 @@ Correct Mental Model:
 
 ---
 
-# 🏆 Success Metrics
+#  Success Metrics
 
 - Fully automated CI/CD pipeline
 - Successful Kubernetes deployment
@@ -654,7 +654,7 @@ Correct Mental Model:
 
 ---
 
-# 📌 Final Outcome
+#  Final Outcome
 
 Feast Flow now supports:
 
@@ -666,7 +666,7 @@ Feast Flow now supports:
 
 ---
 
-## 🔥 Key Takeaway
+##  Key Takeaway
 
 This project demonstrates a clear CI/CD execution model where:
 
@@ -675,3 +675,72 @@ This project demonstrates a clear CI/CD execution model where:
 - Kubernetes ensures reliability  
 
 Separation of responsibilities enables safe releases, predictable deployments, and production-grade DevOps workflows.
+
+=>High-Level-Design
+
+![alt text](image.png)
+
+High-Level Design (HLD)
+Overview
+
+The Zero-Downtime Deployment Platform is built using a microservices architecture deployed on Kubernetes. The system ensures continuous deployment, real-time updates, and no service interruption during releases.
+
+Architecture Components
+
+1. Frontend Layer
+
+Customer UI (React / Next.js) – Used by customers to browse menus and place orders.
+
+Admin Dashboard (React Admin) – Used to manage pricing, menus, and configurations.
+
+Both communicate through a centralized API Gateway.
+
+2. API Gateway
+
+Acts as the single entry point for all client requests.
+
+Handles:
+
+Authentication & Authorization
+
+SSL termination
+
+Rate limiting
+
+Routing to backend services
+
+3. Backend Microservices
+
+Deployed inside a Kubernetes cluster:
+
+Pricing Service (Node.js) – Manages real-time pricing (Canary deployments).
+
+Menu Service (Spring Boot) – Handles menu updates (Rolling deployments).
+
+Order Service (Node.js) – Processes customer orders.
+
+Admin Service (Spring Boot) – Publishes configuration updates.
+
+Each service is independently scalable and deployable.
+
+4. Data & Messaging Layer
+
+PostgreSQL – Orders and user data
+
+MongoDB – Menu and catalog data
+
+Redis – Caching for real-time performance
+
+Apache Kafka – Event streaming between services
+
+Real-Time Update Flow
+
+Admin Update
+→ API Gateway
+→ Admin Service
+→ Kafka
+→ Pricing/Menu Service
+→ Redis
+→ Customer UI
+
+Updates reflect instantly without restarting services (< 500ms).
