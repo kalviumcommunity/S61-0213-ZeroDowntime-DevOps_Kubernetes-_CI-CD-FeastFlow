@@ -5,17 +5,17 @@ Previously, any backend update required a full system restart, causing 15-minute
 
 Our solution enables:
 
- Zero-downtime deployments
+Zero-downtime deployments
 
- Real-time pricing updates
+Real-time pricing updates
 
- Real-time menu updates
+Real-time menu updates
 
- Canary / Rolling deployments
+Canary / Rolling deployments
 
- Production-like staging environment
+Production-like staging environment
 
- Horizontal scalability across cities
+Horizontal scalability across cities
 
 Architecture
 High-Level Components
@@ -104,19 +104,19 @@ No restart required. No downtime.
 
 Project Structure
 /frontend
-  /customer-ui
-  /admin-ui
+/customer-ui
+/admin-ui
 
 /backend
-  /pricing-service
-  /menu-service
-  /order-service
-  /admin-service
+/pricing-service
+/menu-service
+/order-service
+/admin-service
 
 /devops
-  /k8s-manifests
-  /helm-charts
-  /ci-cd
+/k8s-manifests
+/helm-charts
+/ci-cd
 
 CI/CD Artifact Flow
 
@@ -126,19 +126,19 @@ Source → Image → Registry → Cluster
 
 To understand how a Git commit becomes a deployable artifact and runs inside a Kubernetes cluster using a CI/CD pipeline.
 
- Artifact Flow Overview
+Artifact Flow Overview
 
 In modern DevOps, code is not deployed directly.
 Each change becomes an immutable artifact that moves through controlled stages:
 
 Source (Git Commit)
-        ↓
+↓
 CI Pipeline
-        ↓
+↓
 Docker Image
-        ↓
+↓
 Container Registry
-        ↓
+↓
 Kubernetes Cluster
 
 1️ Source (Git)
@@ -225,7 +225,7 @@ Rolling update strategy
 
 When the image changes, Kubernetes performs a rolling update without downtime.
 
- Rollbacks
+Rollbacks
 
 If a release fails:
 
@@ -261,28 +261,29 @@ Describe the role of ReplicaSets during deployments
 Understand how health probes and resource limits affect pod behavior
 Identify common failure states and what they indicate during deployments
 Here’s What You Need to Understand
+
 1. The Kubernetes Application Lifecycle (Big Picture)
-When you deploy an application to Kubernetes, it goes through a well-defined lifecycle.
+   When you deploy an application to Kubernetes, it goes through a well-defined lifecycle.
 
 At a high level:
 
 Deployment Created
-        ↓
+↓
 ReplicaSet Created
-        ↓
+↓
 Pods Created
-        ↓
+↓
 Pods Scheduled on Nodes
-        ↓
+↓
 Containers Start
-        ↓
+↓
 Health Checks Pass
-        ↓
+↓
 Application Becomes Available
 Kubernetes continuously watches this process and tries to keep the system in the desired state.
 
 2. Pod Creation & Scheduling
-A Pod is the smallest unit Kubernetes deploys.
+   A Pod is the smallest unit Kubernetes deploys.
 
 What Happens When You Apply a Deployment
 You apply a Deployment manifest
@@ -293,7 +294,7 @@ The kubelet on that node starts the container
 Key Insight: You never create Pods directly in production - Deployments and ReplicaSets manage them for you.
 
 3. ReplicaSets - Maintaining Desired State
-A ReplicaSet ensures that the desired number of pods are always running.
+   A ReplicaSet ensures that the desired number of pods are always running.
 
 Example:
 
@@ -307,7 +308,7 @@ If replicas are decreased → pods are terminated
 Key Idea: ReplicaSets are the self-healing mechanism behind Kubernetes deployments.
 
 4. Deployment Rollouts & Update Mechanics
-When you update your application (for example, a new image version), Kubernetes performs a rollout.
+   When you update your application (for example, a new image version), Kubernetes performs a rollout.
 
 Rolling Update Strategy (Default)
 During a rollout:
@@ -325,8 +326,7 @@ You can inspect rollout state using:
 
 Deployment status
 Pod readiness
-ReplicaSet history
-5. Health Probes - How Kubernetes Knows a Pod Is Healthy
+ReplicaSet history 5. Health Probes - How Kubernetes Knows a Pod Is Healthy
 Kubernetes does not guess pod health - it uses probes.
 
 Types of Probes
@@ -339,7 +339,7 @@ Startup Probe Used for slow-starting applications → Prevents premature restart
 Key Insight: Incorrect probes are one of the most common causes of broken deployments.
 
 6. Resource Limits & Scheduling Behavior
-Each pod can define:
+   Each pod can define:
 
 CPU requests & limits
 Memory requests & limits
@@ -352,8 +352,7 @@ Common behaviors:
 
 CPU limit exceeded → throttling
 Memory limit exceeded → pod is OOMKilled
-Requests too high → pod stuck in Pending
-7. Common Pod States & Failure Conditions
+Requests too high → pod stuck in Pending 7. Common Pod States & Failure Conditions
 Understanding pod states is essential for debugging.
 
 Common Pod States
@@ -366,7 +365,7 @@ Terminating → Pod is shutting down
 Each state tells you exactly where the failure is happening.
 
 8. Failure Recovery & Self-Healing
-Kubernetes automatically responds to failures:
+   Kubernetes automatically responds to failures:
 
 Pod crashes → restarted
 Node fails → pods rescheduled
@@ -375,7 +374,7 @@ Replica count violated → corrected
 Important: Kubernetes guarantees desired state, not that your application logic is correct.
 
 9. What You Should Be Able to Explain After This Lesson
-You should confidently explain:
+   You should confidently explain:
 
 How pods are created and scheduled
 How ReplicaSets maintain availability
@@ -414,7 +413,7 @@ By mastering Kubernetes application lifecycle mechanics, you gain the ability to
 
 ## 📌 Project Overview
 
-Feast Flow is a cloud-native DevOps implementation designed to eliminate service disruptions during application updates.  
+Feast Flow is a cloud-native DevOps implementation designed to eliminate service disruptions during application updates.
 
 Previously, pricing algorithm and restaurant menu updates required full system restarts, causing 15-minute downtime during peak dinner hours across 30+ cities.
 
@@ -442,7 +441,6 @@ CD Pipeline (Deploy)
 Kubernetes Cluster (AWS)
 ↓
 Rolling Update (Zero Downtime)
-
 
 Each stage has clear responsibilities and ownership.
 
@@ -477,7 +475,7 @@ CI does NOT deploy to production.
 
 ---
 
-#  Continuous Deployment (CD)
+# Continuous Deployment (CD)
 
 CD is responsible for safely releasing validated artifacts.
 
@@ -501,21 +499,21 @@ CD does NOT rebuild code. It deploys images created by CI.
 
 # Responsibility Breakdown
 
-| Action | Owner |
-|--------|--------|
-| Writing business logic | Application Code |
-| Writing unit tests | Application Code |
-| Running tests | CI Pipeline |
-| Building Docker image | CI Pipeline |
-| Tagging & pushing image | CI Pipeline |
-| Updating Kubernetes manifests | CD Pipeline |
-| Applying manifests to cluster | CD Pipeline |
-| Restarting failed pods | Kubernetes |
-| Scaling replicas | Kubernetes |
+| Action                        | Owner            |
+| ----------------------------- | ---------------- |
+| Writing business logic        | Application Code |
+| Writing unit tests            | Application Code |
+| Running tests                 | CI Pipeline      |
+| Building Docker image         | CI Pipeline      |
+| Tagging & pushing image       | CI Pipeline      |
+| Updating Kubernetes manifests | CD Pipeline      |
+| Applying manifests to cluster | CD Pipeline      |
+| Restarting failed pods        | Kubernetes       |
+| Scaling replicas              | Kubernetes       |
 
 ---
 
-#  Responsibility Boundaries
+# Responsibility Boundaries
 
 ## 1️. Application Code
 
@@ -552,21 +550,24 @@ CD does NOT rebuild code. It deploys images created by CI.
 
 ---
 
-#  Why Separation of Responsibilities Matters
+# Why Separation of Responsibilities Matters
 
 Before DevOps:
+
 - Manual deployment
 - Full system restart
 - 15-minute downtime
 - High production risk
 
 After DevOps:
+
 - Automated validation
 - Rolling deployments
 - Zero downtime
 - Faster and safer releases
 
 Benefits:
+
 - Safe Pull Requests
 - Predictable deployments
 - Reduced human error
@@ -575,7 +576,7 @@ Benefits:
 
 ---
 
-#  Safe Pipeline Modifications
+# Safe Pipeline Modifications
 
 Pipeline files are production-critical.
 
@@ -594,21 +595,21 @@ Therefore:
 
 ---
 
-#  Common Misconceptions
+# Common Misconceptions
 
-CI deploys code →  Incorrect  
-CD rebuilds application →  Incorrect  
-Pipelines replace Kubernetes →  Incorrect  
+CI deploys code → Incorrect  
+CD rebuilds application → Incorrect  
+Pipelines replace Kubernetes → Incorrect
 
 Correct Mental Model:
 
-- CI builds confidence  
-- CD moves artifacts  
-- Kubernetes runs and heals systems  
+- CI builds confidence
+- CD moves artifacts
+- Kubernetes runs and heals systems
 
 ---
 
-#  Functional Requirements
+# Functional Requirements
 
 - CI pipeline builds and validates Docker images
 - CD pipeline deploys to Kubernetes automatically
@@ -617,7 +618,7 @@ Correct Mental Model:
 
 ---
 
-#  Non-Functional Requirements
+# Non-Functional Requirements
 
 - Reliability: System recovers from pod failure
 - Scalability: Supports multiple replicas
@@ -626,7 +627,7 @@ Correct Mental Model:
 
 ---
 
-#  Deployment & Testing Strategy
+# Deployment & Testing Strategy
 
 ## Testing
 
@@ -644,7 +645,7 @@ Correct Mental Model:
 
 ---
 
-#  Success Metrics
+# Success Metrics
 
 - Fully automated CI/CD pipeline
 - Successful Kubernetes deployment
@@ -654,7 +655,7 @@ Correct Mental Model:
 
 ---
 
-#  Final Outcome
+# Final Outcome
 
 Feast Flow now supports:
 
@@ -666,13 +667,13 @@ Feast Flow now supports:
 
 ---
 
-##  Key Takeaway
+## Key Takeaway
 
 This project demonstrates a clear CI/CD execution model where:
 
-- CI validates code  
-- CD deploys artifacts  
-- Kubernetes ensures reliability  
+- CI validates code
+- CD deploys artifacts
+- Kubernetes ensures reliability
 
 Separation of responsibilities enables safe releases, predictable deployments, and production-grade DevOps workflows.
 
@@ -744,3 +745,52 @@ Admin Update
 → Customer UI
 
 Updates reflect instantly without restarting services (< 500ms).
+
+## Work Reference - February 17, 2026
+
+# DevOps Environment Setup
+
+## System Information
+
+- **OS:** Windows 11
+- **Shell:** PowerShell
+- **Kubernetes Environment:** Docker Desktop Kubernetes
+
+---
+
+## Tools Installed & Verified
+
+| Tool        | Verification Command       | Status          |
+| ----------- | -------------------------- | --------------- |
+| Git         | `git --version`            | Working         |
+| Docker      | `docker --version`         | Working         |
+| Docker Test | `docker run hello-world`   | Successful      |
+| kubectl     | `kubectl version --client` | Installed       |
+| Kubernetes  | `kubectl get nodes`        | Cluster Running |
+| Helm        | `helm version`             | Working         |
+| Curl        | `curl.exe --version`       | Working         |
+
+---
+
+## Notes
+
+- Docker Desktop installed and running.
+- Kubernetes enabled from Docker Desktop settings.
+- All tools verified via CLI.
+- Screenshots included in this folder as proof.
+
+---
+
+## Status
+
+DevOps environment successfully configured and ready for containerized and Kubernetes-based deployments.
+
+---
+
+
+
+### Setup Verification Screenshots
+
+![Commands Screenshot](screenshot/Commands_screenshort.png)
+
+![Environment Setup](screenshot/image.png)
