@@ -1047,3 +1047,28 @@ CD moves artifacts
 Kubernetes runs and heals systems
 
 Clear separation ensures safe, predictable, zero-downtime deployments.
+
+
+Contributions
+
+Designed the complete High-Level Design (HLD) and Low-Level Design (LLD) for the zero-downtime deployment architecture.
+
+Defined microservices-based system architecture including API Gateway, backend services, frontend applications, and data layer.
+
+Documented real-time update flow using Apache Kafka and Redis for instant pricing and menu updates.
+
+Implemented and configured CI pipeline using GitHub Actions for automated build, test, Docker image creation, and registry push.
+
+Designed CD workflow to deploy validated Docker images to Kubernetes using rolling update strategy.
+
+Created and structured Kubernetes manifests including Deployments, Services, ConfigMaps, and Secrets.
+
+Configured health probes (Liveness and Readiness) and resource limits to ensure application stability and reliability.
+
+Defined rollback strategy using immutable Docker images and controlled deployment versions.
+
+Set up and verified DevOps environment (Git, Docker, Kubernetes, kubectl, Helm) on local system.
+
+Structured repository with clear separation of frontend, backend, and DevOps components.
+
+Applied structured Git practices including feature-based branching, meaningful commit conventions, and Pull Request-based integration workflow.
