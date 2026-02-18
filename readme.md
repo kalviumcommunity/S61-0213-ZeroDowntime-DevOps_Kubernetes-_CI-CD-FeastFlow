@@ -60,9 +60,11 @@ Kubernetes
 
 Docker
 
-GitHub Actions
+GitHub Actions (CI/CD)
 
 Argo CD
+
+Helm Charts
 
 Data & Messaging
 
@@ -411,7 +413,7 @@ By mastering Kubernetes application lifecycle mechanics, you gain the ability to
 
 ---
 
-## 📌 Project Overview
+## Project Overview
 
 Feast Flow is a cloud-native DevOps implementation designed to eliminate service disruptions during application updates.
 
@@ -428,7 +430,7 @@ The goal is zero-downtime deployments, scalable infrastructure, and reliable aut
 
 ---
 
-# 🚀 CI/CD Execution Model (Big Picture)
+# CI/CD Execution Model (Big Picture)
 
 Code Change
 ↓
@@ -787,24 +789,23 @@ DevOps environment successfully configured and ready for containerized and Kuber
 
 ---
 
-
-
 ### Setup Verification Screenshots
 
 ![Commands Screenshot](screenshot/Commands_screenshort.png)
 
 ![Environment Setup](screenshot/image.png)
 
-
 ---
 
 # 🍽 Feast Flow – Sprint #3
+
 # Low-Level Design (LLD)
+
 ## DevOps with Kubernetes & CI/CD
 
 ---
 
-# 1️⃣ Introduction
+# 1️ Introduction
 
 This document represents the Low-Level Design (LLD) for the Feast Flow DevOps architecture.
 
@@ -822,23 +823,26 @@ This document is implementation-ready and can be used by another engineer to bui
 
 ---
 
-# 2️⃣ System Components & Internal Structure
+# 2️ System Components & Internal Structure
 
 ## 2.1 Application Container
 
 **Responsibility:**
+
 - Hosts Feast Flow web application
 - Handles pricing algorithm updates
 - Handles restaurant menu updates
 - Exposes HTTP endpoint
 
 **Technology:**
+
 - Docker container
 - Single application container per pod
 
 ---
 
 **Responsibility:**
+
 - Validate code
 - Run tests
 - Build Docker image
@@ -846,16 +850,16 @@ This document is implementation-ready and can be used by another engineer to bui
 
 ---
 
-
 **Responsibility:**
+
 - Deploy validated Docker image
 - Update Kubernetes Deployment
 - Trigger rolling update
 
 ---
 
-
 **Resources Used:**
+
 - Deployment
 - Service
 - ConfigMap
@@ -871,7 +875,7 @@ This document is implementation-ready and can be used by another engineer to bui
 
 ---
 
-# 3️⃣ CI Pipeline – Step-by-Step Execution
+# 3️ CI Pipeline – Step-by-Step Execution
 
 ## Trigger Conditions
 
@@ -883,23 +887,25 @@ This document is implementation-ready and can be used by another engineer to bui
 ## CI Execution Flow
 
 ### Step 1 – Checkout Code
+
 **Input:** GitHub repository  
-**Output:** Source code in runner environment  
+**Output:** Source code in runner environment
 
 ---
 
 ### Step 2 – Install Dependencies
-**Purpose:** Prepare environment  
+
+**Purpose:** Prepare environment
 
 ---
 
 ### Step 3 – Run Tests
+
 **Input:** Application source code  
 **Output:** Test result (pass/fail)  
-If failed → pipeline stops  
+If failed → pipeline stops
 
 ---
-
 
 **Final Output of CI:**
 Docker image stored in container registry.
@@ -908,7 +914,7 @@ CI ensures only tested images move forward.
 
 ---
 
-# 4️⃣ CD Pipeline – Deployment Mechanics
+# 4️ CD Pipeline – Deployment Mechanics
 
 ## Deployment Trigger
 
@@ -930,14 +936,16 @@ CI ensures only tested images move forward.
 ## Health Probes
 
 ### Liveness Probe
+
 Checks application health endpoint.
 
 ### Readiness Probe
+
 Ensures pod receives traffic only when ready.
 
 ---
 
-# 7️⃣ Data & Control Flow
+# 7️ Data & Control Flow
 
 ## Code Change → CI
 
@@ -973,7 +981,7 @@ User → LoadBalancer → Service → Pod → Application Container
 
 ---
 
-# 8️⃣ Assumptions & Constraints
+# 8️ Assumptions & Constraints
 
 ## Assumptions
 
@@ -995,7 +1003,7 @@ User → LoadBalancer → Service → Pod → Application Container
 
 ---
 
-# 9️⃣ Visual LLD Diagrams (To Be Added)
+# 9️ Visual LLD Diagrams (To Be Added)
 
 The following diagrams must be exported as:
 
@@ -1008,6 +1016,7 @@ Required Diagrams:
 3. Pod-Level Architecture Diagram
 
 Legend must explain:
+
 - Pipelines
 - Registry
 - Kubernetes resources
@@ -1017,7 +1026,7 @@ Diagram link (if hosted) must be added in .txt file.
 
 ---
 
-# 🔟 Final Outcome
+# Final Outcome
 
 This Low-Level Design defines:
 
@@ -1031,11 +1040,10 @@ This document serves as the final technical blueprint before implementation.
 
 ---
 
-# 🔥 Key Principle
+# Key Principle
 
 CI builds confidence  
 CD moves artifacts  
-Kubernetes runs and heals systems  
+Kubernetes runs and heals systems
 
 Clear separation ensures safe, predictable, zero-downtime deployments.
-
