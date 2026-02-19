@@ -1072,3 +1072,252 @@ Set up and verified DevOps environment (Git, Docker, Kubernetes, kubectl, Helm) 
 Structured repository with clear separation of frontend, backend, and DevOps components.
 
 Applied structured Git practices including feature-based branching, meaningful commit conventions, and Pull Request-based integration workflow.
+
+---
+
+Docker-Architecture-Explanation
+
+# 🍽 Feast Flow – Sprint #3  
+# Understanding Docker Architecture: Images, Containers, and Layers
+
+---
+
+## 1️⃣ Purpose of This Document
+
+This document explains Docker architecture in the context of the Feast Flow DevOps system.  
+
+The goal is to demonstrate a clear understanding of:
+
+- Docker as a platform
+- Immutable images
+- Image layers and caching behavior
+- Containers as runtime instances
+- Image–container lifecycle
+- Why Docker architecture matters for CI/CD and Kubernetes
+
+This explanation connects conceptual Docker knowledge directly to our CI/CD pipeline and Kubernetes deployment model.
+
+---
+
+# 2️⃣ Docker as a Platform in Feast Flow
+
+Docker is not just a CLI tool. It is a platform that:
+
+- Builds immutable images
+- Manages layered filesystems
+- Runs containers as isolated processes
+- Integrates with CI pipelines
+- Supplies artifacts to Kubernetes
+
+In Feast Flow:
+
+- GitHub Actions builds Docker images in CI.
+- The image is pushed to a container registry.
+- Kubernetes pulls the image and runs it as containers.
+- Rolling updates replace old containers with new ones.
+
+Docker acts as the bridge between development and production.
+
+---
+
+# 3️⃣ Docker Images as Immutable Artifacts
+
+A Docker image is a read-only blueprint of the application.
+
+Key properties:
+
+- Images are immutable.
+- Any change creates a new image.
+- Images can be versioned using tags (e.g., commit SHA).
+- The same image runs across environments.
+
+In Feast Flow:
+
+Each code change:
+1. Triggers CI.
+2. Builds a new Docker image.
+3. Tags it using commit SHA.
+4. Pushes it to the registry.
+5. Deploys that exact image to Kubernetes.
+
+This ensures reproducibility across 30+ cities with zero environment drift.
+
+---
+
+# 4️⃣ Understanding Layers and Their Impact
+
+Docker images are composed of layers.
+
+Each instruction in a Dockerfile (e.g., RUN, COPY, ADD) creates a new layer.
+
+Layers are:
+
+- Cached
+- Reused across builds
+- Stacked to form the final image
+
+### Why Layer Ordering Matters
+
+If dependency installation happens before copying source code:
+
+- Dependency layers remain cached
+- Only application code layer rebuilds
+- CI build time improves
+
+If ordered incorrectly:
+
+- Small source changes invalidate earlier layers
+- Entire image rebuilds
+- CI becomes slow
+
+In Feast Flow, proper layer ordering improves CI performance and reduces pipeline execution time.
+
+---
+
+# 5️⃣ Containers as Runtime Instances
+
+A container is a running instance of an image.
+
+Important distinction:
+
+Image → Immutable blueprint  
+Container → Running process with writable layer  
+
+Containers add a thin writable layer on top of the image.
+
+If a container stops:
+
+- Its writable changes are lost
+- The image remains unchanged
+
+In Feast Flow:
+
+- Kubernetes runs containers from Docker images.
+- If a pod is deleted, Kubernetes creates a new container from the same image.
+- Runtime changes inside a pod do not modify the original image.
+
+This prevents configuration drift and ensures deployment consistency.
+
+---
+
+# 6️⃣ Image–Container Lifecycle in Feast Flow
+
+The lifecycle flow:
+
+Code Change
+↓
+Docker Build
+↓
+Layers Created
+↓
+Image Generated
+↓
+Image Pushed to Registry
+↓
+Kubernetes Pulls Image
+↓
+Container Created
+↓
+Pod Runs Application
+
+
+Build-time concerns:
+- Dependencies
+- Filesystem setup
+- Application packaging
+
+Runtime concerns:
+- Environment variables
+- Resource allocation
+- Health checks
+- Traffic handling
+
+Separating build-time and runtime responsibilities ensures predictable deployments.
+
+---
+
+# 7️⃣ Why Docker Architecture Matters for Performance
+
+Misunderstanding Docker architecture leads to:
+
+- Large images
+- Slow CI builds
+- Cache invalidation issues
+- Hard-to-debug runtime behavior
+- Inconsistent production deployments
+
+In Feast Flow, efficient Docker usage ensures:
+
+- Faster CI pipelines
+- Smaller images
+- Reliable Kubernetes rollouts
+- Reduced downtime during updates
+- Predictable scaling across multiple cities
+
+---
+
+# 8️⃣ Docker’s Role in CI/CD Execution Model
+
+In our DevOps architecture:
+
+CI:
+- Builds Docker image
+- Validates image
+- Pushes image to registry
+
+CD:
+- Pulls immutable image
+- Updates Kubernetes deployment
+- Triggers rolling update
+
+Kubernetes:
+- Runs containers
+- Self-heals failed pods
+- Maintains replica count
+
+Clear responsibility separation:
+
+Docker builds artifacts  
+CI validates artifacts  
+CD deploys artifacts  
+Kubernetes runs artifacts  
+
+---
+
+# 9️⃣ Common Misconceptions Clarified
+
+“Editing files inside a container updates the image” → Incorrect  
+“Docker image changes at runtime” → Incorrect  
+“Containers persist state by default” → Incorrect  
+
+Correct understanding:
+
+Images are immutable.  
+Containers are ephemeral runtime instances.  
+State must be managed explicitly.
+
+---
+
+# 🔟 Conclusion
+
+Understanding Docker architecture allows us to:
+
+- Predict build behavior
+- Optimize CI performance
+- Maintain consistent deployments
+- Prevent runtime drift
+- Debug container failures effectively
+
+In Feast Flow, Docker is the foundation of our CI/CD pipeline and Kubernetes deployment strategy.
+
+A strong conceptual understanding ensures that we move from mechanical Docker usage to informed engineering decisions.
+
+---
+
+# 🔥 Key Takeaways
+
+- Images are immutable artifacts.
+- Layers impact caching and performance.
+- Containers are runtime instances of images.
+- Build-time and runtime concerns must remain separate.
+- Docker enables consistent, reproducible zero-downtime deployments.
