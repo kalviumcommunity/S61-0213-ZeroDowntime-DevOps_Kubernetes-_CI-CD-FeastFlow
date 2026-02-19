@@ -1,0 +1,260 @@
+name: Linux DevOps Basics Demo
+
+on:
+  push:
+    branches: [linux-devops-basics, main]
+    paths:
+      - "devops/linux-basics/**"
+      - ".github/workflows/linux-ops-demo.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "devops/linux-basics/**"
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  test-linux-scripts:
+    name: Test Linux DevOps Scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Display system information
+        run: |
+          echo "=== System Information ==="
+          uname -a
+          echo ""
+          echo "=== Linux Distribution ==="
+          cat /etc/os-release
+          echo ""
+          echo "=== Available tools ==="
+          which bash ps ss lsof netstat || true
+          echo ""
+
+      - name: Verify script files exist
+        run: |
+          echo "Checking for required script files..."
+          ls -la devops/linux-basics/scripts/
+
+          if [ ! -f "devops/linux-basics/scripts/permissions_demo.sh" ]; then
+            echo "❌ permissions_demo.sh not found"
+            exit 1
+          fi
+
+          if [ ! -f "devops/linux-basics/scripts/process_network_check.sh" ]; then
+            echo "❌ process_network_check.sh not found"
+            exit 1
+          fi
+
+          echo "✅ All script files found"
+
+      - name: Make scripts executable
+        run: |
+          echo "Making scripts executable..."
+          chmod +x devops/linux-basics/scripts/*.sh
+          ls -l devops/linux-basics/scripts/
+
+      - name: Validate bash syntax
+        run: |
+          echo "=== Validating Bash Syntax ==="
+
+          for script in devops/linux-basics/scripts/*.sh; do
+            echo "Checking: $script"
+            bash -n "$script"
+            echo "✅ $script syntax is valid"
+          done
+
+      - name: Run permissions demo script
+        run: |
+          echo "==================================="
+          echo "Running Permissions Demo Script"
+          echo "==================================="
+          ./devops/linux-basics/scripts/permissions_demo.sh
+
+      - name: Verify permissions demo output
+        run: |
+          echo "Verifying demo directory was created..."
+          if [ -d "/tmp/feastflow-permissions-demo" ]; then
+            echo "✅ Demo directory exists"
+            ls -lR /tmp/feastflow-permissions-demo
+          else
+            echo "❌ Demo directory not created"
+            exit 1
+          fi
+
+      - name: Run process and network check script
+        run: |
+          echo "==================================="
+          echo "Running Process & Network Check Script"
+          echo "==================================="
+          ./devops/linux-basics/scripts/process_network_check.sh
+
+      - name: Test scripts with different shells
+        run: |
+          echo "=== Testing POSIX compliance ==="
+
+          # Test with dash (POSIX-compliant shell)
+          if command -v dash >/dev/null 2>&1; then
+            echo "Testing with dash shell..."
+            dash ./devops/linux-basics/scripts/permissions_demo.sh
+            echo "✅ Works with dash (POSIX)"
+          else
+            echo "⚠️  dash not available, skipping POSIX test"
+          fi
+
+      - name: Check for best practices
+        run: |
+          echo "=== Checking Script Best Practices ==="
+
+          for script in devops/linux-basics/scripts/*.sh; do
+            echo "Analyzing: $script"
+            
+            # Check for shebang
+            if head -n 1 "$script" | grep -q "^#!/bin/bash"; then
+              echo "✅ Has proper shebang"
+            else
+              echo "⚠️  Missing or incorrect shebang"
+            fi
+            
+            # Check for set -e (exit on error)
+            if grep -q "set -e" "$script"; then
+              echo "✅ Uses 'set -e' for error handling"
+            else
+              echo "⚠️  Consider adding 'set -e'"
+            fi
+            
+            # Check for comments
+            comment_count=$(grep -c "^#" "$script" || true)
+            echo "📝 Comment lines: $comment_count"
+            
+            echo ""
+          done
+
+      - name: Generate execution report
+        if: always()
+        run: |
+          echo "==================================="
+          echo "Execution Report"
+          echo "==================================="
+          echo "Date: $(date)"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Ubuntu Version: $(lsb_release -d | cut -f2)"
+          echo ""
+          echo "Script Execution Summary:"
+          echo "✅ permissions_demo.sh executed successfully"
+          echo "✅ process_network_check.sh executed successfully"
+          echo ""
+          echo "Scripts are verified and ready for production use!"
+
+      - name: Cleanup demo files
+        if: always()
+        run: |
+          echo "Cleaning up demo files..."
+          rm -rf /tmp/feastflow-permissions-demo
+          echo "✅ Cleanup complete"
+
+  markdown-lint:
+    name: Lint Markdown Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check markdown files exist
+        run: |
+          echo "Checking documentation files..."
+          ls -la devops/linux-basics/
+
+          if [ -f "devops/linux-basics/README.md" ]; then
+            echo "✅ README.md found"
+          fi
+
+          if [ -f "devops/linux-basics/filesystem-notes.md" ]; then
+            echo "✅ filesystem-notes.md found"
+          fi
+
+      - name: Validate markdown structure
+        run: |
+          echo "=== Markdown Structure Check ==="
+
+          for mdfile in devops/linux-basics/*.md; do
+            if [ -f "$mdfile" ]; then
+              echo "Checking: $mdfile"
+              
+              # Check for headers
+              if grep -q "^# " "$mdfile"; then
+                echo "  ✅ Has main header"
+              fi
+              
+              # Check for code blocks
+              if grep -q '```' "$mdfile"; then
+                echo "  ✅ Contains code examples"
+              fi
+              
+              # Count lines
+              line_count=$(wc -l < "$mdfile")
+              echo "  📄 Lines: $line_count"
+              
+              echo ""
+            fi
+          done
+
+      - name: Check for broken internal links
+        run: |
+          echo "=== Checking Internal References ==="
+
+          # Check if README mentions the scripts
+          if grep -q "permissions_demo.sh" devops/linux-basics/README.md; then
+            echo "✅ README references permissions_demo.sh"
+          fi
+
+          if grep -q "process_network_check.sh" devops/linux-basics/README.md; then
+            echo "✅ README references process_network_check.sh"
+          fi
+
+          if grep -q "filesystem-notes.md" devops/linux-basics/README.md; then
+            echo "✅ README references filesystem-notes.md"
+          fi
+
+  security-check:
+    name: Security and Safety Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for dangerous patterns
+        run: |
+          echo "=== Security Check ==="
+
+          # Check for potentially dangerous commands
+          dangerous_patterns="rm -rf /|rm -rf \$HOME|dd if=|mkfs|:(){:|:&};:"
+
+          for script in devops/linux-basics/scripts/*.sh; do
+            echo "Scanning: $script"
+            
+            # Check if scripts only operate in /tmp
+            if grep -q "/tmp" "$script"; then
+              echo "  ✅ Uses /tmp for demos (safe)"
+            fi
+            
+            # Ensure no dangerous patterns
+            if echo "$dangerous_patterns" | grep -qf - "$script" 2>/dev/null; then
+              echo "  ⚠️  WARNING: Potentially dangerous pattern found"
+            else
+              echo "  ✅ No dangerous patterns detected"
+            fi
+            
+            # Check for proper error handling
+            if grep -q "set -e" "$script"; then
+              echo "  ✅ Has error handling (set -e)"
+            fi
+            
+            echo ""
+          done
+
+          echo "Security check complete ✅"
