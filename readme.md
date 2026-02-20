@@ -261,6 +261,17 @@ A complete Docker registry workflow has been implemented for this project, demon
 
 **🚀 CI/CD:** `.github/workflows/registry-ci.yml` automatically builds and pushes images on every push to `main`
 
+**⚙️ GitHub Secrets Configuration:**
+
+To enable automated CI/CD workflow, configure these repository secrets:
+
+1. Go to **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+2. Add two secrets:
+   - `DOCKERHUB_USERNAME` - Your Docker Hub username
+   - `DOCKERHUB_TOKEN` - Docker Hub access token (generate at [Docker Hub Security Settings](https://hub.docker.com/settings/security))
+
+Without these secrets, the automated workflow will fail with "Username and password required" error.
+
 ---
 
 [Learning Concept-2] Kubernetes Application Lifecycle & Deployment Mechanics
