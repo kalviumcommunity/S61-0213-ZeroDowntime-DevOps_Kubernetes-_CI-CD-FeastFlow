@@ -245,6 +245,24 @@ Registry stores history
 
 Deployments reference exact versions
 
+**✨ Sprint 3 Implementation: Docker Hub Registry Workflow**
+
+A complete Docker registry workflow has been implemented for this project, demonstrating:
+- Image building and multi-tag strategy (`latest`, `sprint3`, `commit-<SHA>`)
+- Pushing/pulling images from Docker Hub
+- CI/CD automation with GitHub Actions
+- Local development scripts for manual testing
+
+**📖 Documentation:** See [devops/registry/dockerhub-usage.md](devops/registry/dockerhub-usage.md) for detailed setup instructions, scripts, and real-world rollback scenarios.
+
+**🔧 Scripts:**
+- `devops/registry/build-and-tag.sh` - Build and tag images locally
+- `devops/registry/push.sh` - Push images to Docker Hub
+
+**🚀 CI/CD:** `.github/workflows/registry-ci.yml` automatically builds and pushes images on every push to `main`
+
+---
+
 [Learning Concept-2] Kubernetes Application Lifecycle & Deployment Mechanics
 
 In this lesson, you’ll explore how Kubernetes manages the full lifecycle of an application - from creation and scheduling to updates, failures, and recovery.
