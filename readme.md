@@ -1321,3 +1321,145 @@ A strong conceptual understanding ensures that we move from mechanical Docker us
 - Containers are runtime instances of images.
 - Build-time and runtime concerns must remain separate.
 - Docker enables consistent, reproducible zero-downtime deployments.
+
+---
+
+# 🍽 Feast Flow – Dockerfile Design (Sprint #3)
+
+## Purpose
+
+This Dockerfile is designed following Docker best practices to ensure:
+
+- Efficient layer caching
+- Minimal image size
+- Secure container runtime
+- Deterministic CI builds
+- Reliable Kubernetes deployments
+
+---
+
+# 1️⃣ Base Image Selection
+
+We selected:
+
+node:20-alpine
+
+Reasons:
+
+- Official Node.js image
+- Alpine variant reduces image size
+- Maintained and secure
+- Suitable for production workloads
+
+Trade-off:
+
+- Alpine images may require additional libraries for certain native modules.
+
+---
+
+# 2️⃣ Layer Optimization Strategy
+
+Layer ordering is structured for optimal caching:
+
+1. Copy package.json first
+2. Install dependencies
+3. Copy application source code
+
+Why?
+
+Dependencies change less frequently than source code.
+This allows Docker to reuse cached dependency layers when only application code changes.
+
+Result:
+
+- Faster CI builds
+- Reduced rebuild times
+- More efficient pipelines
+
+---
+
+# 3️⃣ Production Dependency Installation
+
+Using:
+
+npm ci --only=production
+
+Benefits:
+
+- Clean dependency installation
+- Faster builds
+- Ensures lockfile consistency
+- Prevents unnecessary dev dependencies
+
+---
+
+# 4️⃣ Security Best Practices
+
+- Non-root user created
+- Container does not run as root
+- Minimizes attack surface
+
+This improves production security in Kubernetes.
+
+---
+
+# 5️⃣ Build-Time vs Runtime Separation
+
+Build-time:
+
+- Installing dependencies
+- Setting up filesystem
+- Packaging application
+
+Runtime:
+
+- Running Node server
+- Handling requests
+- Consuming environment variables
+
+This separation ensures predictable behavior across environments.
+
+---
+
+# 6️⃣ Deterministic Image Artifact
+
+The Dockerfile ensures:
+
+- Same image built locally and in CI
+- No local machine dependencies
+- Fully reproducible builds
+
+In Feast Flow CI/CD:
+
+CI:
+- Builds image
+- Tags image with commit SHA
+- Pushes image to registry
+
+CD:
+- Deploys immutable image to Kubernetes
+
+This guarantees consistent deployment across 30+ cities.
+
+---
+
+# 7️⃣ Impact on CI/CD Performance
+
+Proper layer ordering:
+
+- Reduces rebuild time
+- Minimizes pipeline delays
+- Improves developer feedback loop
+
+Small inefficiencies in Dockerfiles compound over repeated CI executions.
+This design prevents slow builds and image growth.
+
+---
+
+# 🔥 Key Takeaways
+
+- Base image affects size and security.
+- Layer ordering affects caching and build speed.
+- Containers should run as non-root.
+- Dockerfiles must be deterministic.
+- Efficient Dockerfiles improve DevOps reliability.
