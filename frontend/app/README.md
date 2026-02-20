@@ -236,13 +236,13 @@ docker top feastflow-app
 
 ### Docker Desktop - Container Running Successfully
 
-![Docker Desktop Container Running](./docker-desktop-container.png)
+![Docker Desktop Container Running](/screenshot/docker-desktop-container.png)
 
 *Screenshot showing the feastflow-app container running in Docker Desktop with status "Running (2 minutes ago)" and port mapping 3000:3000. The container is accessible at http://localhost:3000.*
 
 ### Terminal - Build and Run Process
 
-![Docker Build and Run Commands](./docker-terminal-build-run.png)
+![Docker Build and Run Commands](/screenshot/docker-terminal-build-run.png)
 
 *Terminal screenshot demonstrating the complete Docker workflow: building the image with `docker build -t feastflow-frontend .` showing the multi-stage build process (21/21 FINISHED), followed by `docker run` command launching the Next.js application successfully with "Ready in 99ms" on localhost:3000.*
 
