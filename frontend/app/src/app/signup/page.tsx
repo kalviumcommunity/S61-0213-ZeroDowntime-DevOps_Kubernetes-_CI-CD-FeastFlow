@@ -39,7 +39,8 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const { confirmPassword: _confirmPassword, ...registerData } = formData;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { confirmPassword, ...registerData } = formData;
       const result = await register(registerData);
       
       if (result.success) {

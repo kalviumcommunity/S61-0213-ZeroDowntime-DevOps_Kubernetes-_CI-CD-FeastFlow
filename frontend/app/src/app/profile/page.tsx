@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@/types';
 
@@ -9,6 +9,7 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
+  const hasInitialized = useRef(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -23,8 +24,11 @@ export default function ProfilePage() {
     }
   }, [user, router]);
 
+  // Initialize form data when user becomes available
   useEffect(() => {
-    if (user) {
+    if (user && !hasInitialized.current) {
+      hasInitialized.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
