@@ -39,15 +39,21 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = formData;
       const result = await register(registerData);
       
       if (result.success) {
-        router.push('/');
+        // Redirect to admin dashboard if email ends with @feastflow.com
+        if (formData.email.toLowerCase().endsWith('@feastflow.com')) {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       } else {
         setError(result.message || 'Registration failed');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);

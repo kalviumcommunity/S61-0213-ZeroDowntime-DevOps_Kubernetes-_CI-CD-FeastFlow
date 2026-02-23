@@ -62,7 +62,7 @@ export default function TestAuthPage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🧪 Authentication Test Dashboard
+             Authentication Test Dashboard
           </h1>
           <p className="text-gray-600 mb-8">Test the backend integration</p>
 
@@ -199,11 +199,11 @@ export default function TestAuthPage() {
           <h3 className="font-bold text-blue-900 mb-3">📝 Instructions</h3>
           <ol className="list-decimal list-inside space-y-2 text-blue-900">
             <li>Make sure backend is running on <code className="bg-white px-2 py-1 rounded">http://localhost:5000</code></li>
-            <li>Check that "Backend API Status" shows "✅ Connected"</li>
-            <li>Click "Test Register" to create a new user (only works when logged out)</li>
-            <li>Click "Test Login (Admin)" to login with the default admin account</li>
-            <li>Check that "Current User Status" shows your user details</li>
-            <li>Click "Test Logout" to logout</li>
+            <li>Check that &quot;Backend API Status&quot; shows &quot;✅ Connected&quot;</li>
+            <li>Click &quot;Test Register&quot; to create a new user (only works when logged out)</li>
+            <li>Click &quot;Test Login (Admin)&quot; to login with the default admin account</li>
+            <li>Check that &quot;Current User Status&quot; shows your user details</li>
+            <li>Click &quot;Test Logout&quot; to logout</li>
             <li>Try the actual Login and Signup pages using the Quick Links</li>
           </ol>
         </div>

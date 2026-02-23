@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/types';
 
 export default function Header() {
+  const router = useRouter();
   const { cart, setIsCartOpen } = useCart();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -47,21 +49,30 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Cart Button */}
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="relative flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span className="font-medium">Cart</span>
-            {itemCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
-                {itemCount}
-              </span>
-            )}
-          </button>
+          {/* Cart Button - Hidden for admin users */}
+          {(!user || !user.email.toLowerCase().endsWith('@feastflow.com')) && (
+            <button
+              onClick={() => {
+                if (!user) {
+                  alert('Please log in to view your cart');
+                  window.location.href = '/login';
+                  return;
+                }
+                setIsCartOpen(true);
+              }}
+              className="relative flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span className="font-medium">Cart</span>
+              {itemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* User Menu */}
           {user ? (
@@ -123,7 +134,7 @@ export default function Header() {
                         Orders
                       </Link>
 
-                      {(user.role === UserRole.ADMIN || user.role === UserRole.RESTAURANT_OWNER) && (
+                      {(user.role === UserRole.ADMIN || user.role === UserRole.RESTAURANT_OWNER || user.email.toLowerCase().endsWith('@feastflow.com')) && (
                         <Link
                           href="/admin"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -132,7 +143,7 @@ export default function Header() {
                           <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                           </svg>
-                          Dashboard
+                          Admin Dashboard
                         </Link>
                       )}
 
@@ -151,9 +162,10 @@ export default function Header() {
 
                     <div className="border-t border-gray-200 pt-2">
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           setShowUserMenu(false);
-                          logout();
+                          await logout();
+                          router.push('/');
                         }}
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
