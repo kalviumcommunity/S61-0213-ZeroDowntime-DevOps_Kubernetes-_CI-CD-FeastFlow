@@ -1,0 +1,22 @@
+# Frontend Service
+# K8s provides automatic load balancing across frontend pods
+apiVersion: v1
+kind: Service
+metadata:
+  name: feastflow-frontend
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: frontend
+spec:
+  type: ClusterIP  # Use with Ingress for external access
+  
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  
+  selector:
+    app: feastflow
+    component: frontend

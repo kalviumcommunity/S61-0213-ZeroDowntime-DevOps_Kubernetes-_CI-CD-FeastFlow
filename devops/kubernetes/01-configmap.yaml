@@ -1,0 +1,27 @@
+# ConfigMap for non-sensitive application configuration
+# Demonstrates separation of configuration from code (12-factor app principle)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feastflow-config
+  namespace: feastflow
+  labels:
+    app: feastflow
+data:
+  # Backend configuration
+  NODE_ENV: "production"
+  PORT: "5000"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "feastflow"
+  DB_USER: "postgres"
+  JWT_EXPIRE: "7d"
+  JWT_COOKIE_EXPIRE: "7"
+  FRONTEND_URL: "http://feastflow-frontend:3000"
+  
+  # Frontend configuration
+  NEXT_PUBLIC_API_URL: "http://feastflow-backend:5000/api"
+  
+  # Database configuration
+  POSTGRES_DB: "feastflow"
+  POSTGRES_USER: "postgres"

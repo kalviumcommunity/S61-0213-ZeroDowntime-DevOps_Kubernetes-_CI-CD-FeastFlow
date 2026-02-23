@@ -1,0 +1,95 @@
+# Frontend (Next.js) Deployment
+# Demonstrates horizontal scaling capability for web tier
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feastflow-frontend
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: frontend
+spec:
+  replicas: 3  # Scale frontend to handle user traffic
+  
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2        # Can add 2 extra pods during update
+      maxUnavailable: 1  # Max 1 pod unavailable during update
+  
+  selector:
+    matchLabels:
+      app: feastflow
+      component: frontend
+  
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: frontend
+        version: v1.0.0
+    spec:
+      containers:
+      - name: frontend
+        image: feastflow-frontend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        
+        # Environment configuration
+        envFrom:
+        - configMapRef:
+            name: feastflow-config
+        
+        # Additional env vars
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://feastflow-backend:5000/api"
+        
+        # Liveness probe: Restart if Next.js crashes
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Readiness probe: Only route traffic when ready
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
+        # Resource management
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"
+      
+      # Spread pods across nodes for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: component
+                  operator: In
+                  values:
+                  - frontend
+              topologyKey: kubernetes.io/hostname

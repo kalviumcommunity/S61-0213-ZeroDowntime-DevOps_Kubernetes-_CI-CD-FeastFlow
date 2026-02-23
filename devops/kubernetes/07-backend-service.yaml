@@ -1,0 +1,31 @@
+# Backend Service with Load Balancing
+# K8s automatically load balances across all backend pods
+# Service Discovery: feastflow-backend.feastflow.svc.cluster.local:5000
+apiVersion: v1
+kind: Service
+metadata:
+  name: feastflow-backend
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: backend
+  annotations:
+    # Prometheus monitoring (cloud-native observability)
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5000"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP  # Internal service, not exposed directly
+  
+  ports:
+  - port: 5000
+    targetPort: 5000
+    protocol: TCP
+    name: http
+  
+  selector:
+    app: feastflow
+    component: backend
+  
+  # Session affinity for stateful connections if needed
+  # sessionAffinity: ClientIP
