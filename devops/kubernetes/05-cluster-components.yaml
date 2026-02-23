@@ -1,0 +1,764 @@
+################################################################################################
+# FeastFlow Kubernetes Architecture: Annotated Manifests
+################################################################################################
+# This file demonstrates the key Kubernetes components and how they work together
+# to manage FeastFlow. Each section shows a different cluster architecture concept.
+#
+# Kubernetes Cluster Composition:
+#   1. Control Plane (management layer) - API Server, Scheduler, Controllers, etcd
+#   2. Worker Nodes (execution layer) - Kubelet, kube-proxy, container runtime
+#   3. Cluster Services - DNS, Ingress, Storage
+################################################################################################
+
+---
+################################################################################################
+# 1. NAMESPACE - Logical Cluster Partition
+################################################################################################
+# Namespaces provide logical isolation within a single cluster.
+# Multiple teams/apps can share cluster without interfering.
+#
+# Architecture Role:
+#   └─ Isolation: Each namespace has separate ConfigMaps, Secrets, Services, Pods
+#   └─ Quotas: Can limit CPU/memory per namespace
+#   └─ RBAC: Different permissions per namespace
+#
+# FeastFlow Benefit:
+#   └─ Keep FeastFlow isolated from other apps
+#   └─ Easy to delete entire deployment: kubectl delete namespace feastflow
+#
+kind: Namespace
+metadata:
+  name: feastflow
+  labels:
+    app: feastflow
+  annotations:
+    description: "FeastFlow production environment"
+
+---
+################################################################################################
+# 2. CONFIGMAP - Non-Sensitive Configuration
+################################################################################################
+# ConfigMaps store application configuration data that's not sensitive.
+# Demonstrates: Configuration Management & 12-Factor App Principle
+#
+# Why ConfigMap instead of embedding in Dockerfile?
+#   ├─ Decouple config from code (image shouldn't contain env-specific config)
+#   ├─ Update config without rebuilding image
+#   ├─ Reuse same image across dev/staging/prod (just different ConfigMaps)
+#   └─ Track config as code (declarative, versioned)
+#
+# Control Plane Role:
+#   └─ API Server: Stores ConfigMap in etcd
+#   └─ Kubelet: Mounts ConfigMap as environment variables in pod
+#
+# Cluster Communication:
+#   └─ Pod reads env: NEXT_PUBLIC_API_URL → connects to backend Service
+#   └─ backend-service DNS resolves to stable IP (not changing pod IPs)
+#
+kind: ConfigMap
+metadata:
+  name: feastflow-config
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: config
+  annotations:
+    description: "Non-sensitive application configuration"
+    source: "devops/kubernetes/01-configmap.yaml"
+data:
+  # Backend Configuration
+  NODE_ENV: "production"
+  PORT: "5000"
+  DB_HOST: "postgres"  # SERVICE DNS: Internal cluster DNS resolution
+  DB_PORT: "5432"
+  DB_NAME: "feastflow"
+  DB_USER: "postgres"
+  JWT_EXPIRE: "7d"
+  JWT_COOKIE_EXPIRE: "7"
+  # How it works:
+  #   ├─ Frontend Pod needs Backend address
+  #   ├─ Instead of hardcoding IP (which changes), use service name
+  #   ├─ kube-proxy maintains: "feastflow-backend" → [pod-ip-1, pod-ip-2, ...]
+  #   └─ Service DNS resolves name automatically
+  FRONTEND_URL: "http://feastflow-frontend:3000"
+  
+  # Frontend Configuration
+  # Client-side config (prefixed NEXT_PUBLIC_ is exposed to browser)
+  NEXT_PUBLIC_API_URL: "http://feastflow-backend:5000/api"
+  
+  # Database Configuration
+  POSTGRES_DB: "feastflow"
+  POSTGRES_USER: "postgres"
+
+---
+################################################################################################
+# 3. SECRET - Sensitive Configuration
+################################################################################################
+# Secrets store sensitive data (passwords, keys, tokens).
+# Kubernetes does NOT encrypt by default (base64 is encoding, not encryption).
+#
+# Demonstrates: Separation of Concerns & Security Principle
+#
+# Why not in ConfigMap?
+#   └─ Passwords should not be visible in `kubectl get configmap -o yaml`
+#   └─ Kubernetes RBAC can restrict Secret access
+#   └─ In production: encryption at rest should be enabled
+#
+# Control Plane Role:
+#   └─ API Server: Validates and stores Secret in etcd
+#   └─ Authorization: Only authorized users/serviceaccounts can read
+#   └─ Kubelet: Injects as environment variables (not visible to other pods)
+#
+# FeastFlow Architecture:
+#   ├─ DB password: Backend pod needs to connect to database
+#   ├─ JWT secret: Both backend (sign) and frontend (verify) need it
+#   └─ API keys: Any external service integration
+#
+kind: Secret
+metadata:
+  name: feastflow-secrets
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: secrets
+  annotations:
+    description: "Sensitive data - requires authorization to read"
+type: Opaque
+data:
+  # Base64 encoded (echo -n "postgres123" | base64)
+  # In production: use sealed-secrets, vault, or external secret systems
+  DB_PASSWORD: cG9zdGdyZXMxMjM=
+  JWT_SECRET: eW91cl9zdXBlcl9zZWNyZXRfand0X2tleV9jaGFuZ2VfdGhpc19pbl9wcm9kdWN0aW9u
+
+---
+################################################################################################
+# 4. PERSISTENTVOLUMECLAIM (PVC) - Storage for Database
+################################################################################################
+# PVCs abstract storage away from pods.
+# Demonstrates: Decoupling Storage from Computing
+#
+# Why PVC instead of ephemeral storage?
+#   ├─ Container filesystem is ephemeral (data lost when pod restarts)
+#   ├─ PVC persists even if pod/node dies
+#   ├─ Can move across nodes (shared storage backend)
+#   └─ Can survive cluster rebuilds (with backup)
+#
+# Kubernetes Storage Architecture:
+#   PersistentVolumeClaim (pod's storage request)
+#         ↓
+#   PersistentVolume (storage resource in cluster)
+#         ↓
+#   Storage Class (defines provisioner: AWS EBS, GCP Persistent Disk, local, etc.)
+#         ↓
+#   Actual Storage (cloud provider volume or local disk)
+#
+# For FeastFlow Database:
+#   ├─ Without PVC: Pod restarts → all data lost
+#   ├─ With PVC: Pod restarts → data persists
+#   ├─ Node failure: Pod evicted → rescheduled on different node
+#   └─ PVC follows pod (kubernetes detaches from old node, attaches to new)
+#
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: database
+  annotations:
+    description: "Storage claim for PostgreSQL database"
+spec:
+  accessModes:
+    - ReadWriteOnce  # Only one pod can mount for writing
+  storageClassName: standard  # Use default storage provisioner
+  resources:
+    requests:
+      storage: 10Gi  # Request 10GB storage
+
+---
+################################################################################################
+# 5. DEPLOYMENT - Stateless Application (Backend Service)
+################################################################################################
+# A Deployment describes desired state for stateless applications.
+# Demonstrates: ReplicaSet Management, Self-Healing, Rolling Updates
+#
+# Kubernetes Components Involved:
+#   ├─ API Server: Stores Deployment spec in etcd
+#   ├─ Deployment Controller: Creates/manages ReplicaSet
+#   ├─ ReplicaSet Controller: Ensures N replicas always running
+#   ├─ Scheduler: Assigns each Pod to a worker node
+#   ├─ kubelet: Creates containers on assigned nodes
+#   └─ Service Controller: Maintains endpoints list for service
+#
+# Self-Healing Mechanism:
+#   Pod crashes → kubelet detects failure → reports to API Server
+#   → Deployment Controller sees "only 2 running, need 3"
+#   → Creates new pod → Scheduler assigns → kubelet executes
+#   → Back to 3 running (no admin intervention needed)
+#
+# Rolling Update Mechanism:
+#   kubectl set image deployment/feastflow-backend backend=feastflow-backend:v2
+#   → Deployment creates new ReplicaSet with v2 image
+#   → Gradually terminates old pods, creates new ones
+#   → If new version fails → can rollback instantly
+#
+kind: Deployment
+metadata:
+  name: feastflow-backend
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: backend
+  annotations:
+    description: "Backend API service - stateless, horizontally scalable"
+spec:
+  # REPLICA CONTROL
+  replicas: 3  # Desired number of pod instances
+  # Revision history for rollbacks
+  revisionHistoryLimit: 10  # Keep last 10 ReplicaSets for rollback
+
+  # POD SELECTION & MATCHING
+  selector:
+    matchLabels:
+      app: feastflow
+      component: backend
+  # How Deployment finds its pods:
+  #   ├─ Create ReplicaSet with same selector
+  #   ├─ ReplicaSet creates Pods with these labels
+  #   ├─ Service also uses this selector to route traffic
+  #   └─ All three use same selector → pods track each other
+
+  # UPDATE STRATEGY
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1           # Allow 1 extra pod during update
+      maxUnavailable: 0     # Keep all pods available (zero downtime)
+  # Timeline during rolling update:
+  #   T+0s:   Current: 3 old pods
+  #           New pod created (4 total, maxSurge=1)
+  #   T+10s:  1 old pod terminated (3 total)
+  #           New pod ready, added to service
+  #   T+20s:  1 old pod terminated (2 total)
+  #           New pod created (3 total again)
+  #   T+30s:  Last old pod terminated
+  #           All 3 pods now running new version
+  #   Result: Zero downtime, no traffic loss
+
+  # POD TEMPLATE
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: backend
+      annotations:
+        description: "Backend API pod"
+    spec:
+      # SCHEDULING
+      affinity:
+        # Pod Anti-Affinity: Spread replicas across nodes
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - feastflow
+              topologyKey: kubernetes.io/hostname
+      # Effect: Scheduler tries to place each backend pod on different node
+      #   ├─ Better resource utilization
+      #   ├─ If one node fails, not all replicas lost
+      #   └─ Load distributed across cluster
+
+      # TERMINATION GRACE
+      terminationGracePeriodSeconds: 30
+      # When pod needs to stop (rolling update, scale down):
+      #   ├─ SIGTERM sent to container
+      #   ├─ App has 30 seconds to gracefully shutdown
+      #   │  └─ Close existing connections, finish in-flight requests
+      #   ├─ After 30s, SIGKILL forces shutdown
+      #   └─ Service stops routing traffic before SIGTERM (readiness probe)
+
+      # CONTAINERS
+      containers:
+      - name: backend
+        image: feastflow-backend:latest
+        imagePullPolicy: IfNotPresent
+        # Image lifecycle:
+        #   ├─ kubelet checks: Is image cached locally?
+        #   ├─ If not: Pull from registry (feastflow-backend:latest)
+        #   ├─ Create container from image
+        #   ├─ Execute entrypoint/cmd
+        #   └─ Container running
+
+        # PORTS
+        ports:
+        - name: http
+          containerPort: 5000
+          protocol: TCP
+        # Port mapping:
+        #   ├─ Container exposes port 5000 (internal to container)
+        #   ├─ Service forwards traffic to containerPort 5000
+        #   ├─ External world doesn't see 5000 (internal to cluster)
+        #   └─ Ingress or LoadBalancer maps external port to Service
+
+        # ENVIRONMENT (FROM CONFIGMAP & SECRET)
+        envFrom:
+        # Mount entire ConfigMap as environment variables
+        - configMapRef:
+            name: feastflow-config
+        # Mount entire Secret as environment variables
+        - secretRef:
+            name: feastflow-secrets
+        # How it works (kubelet injects):
+        #   ├─ API Server has ConfigMap & Secret
+        #   ├─ kubelet downloads them before creating container
+        #   ├─ Sets as container environment variables
+        #   ├─ Container can access: $DB_HOST, $DB_PASSWORD, etc.
+        #   └─ If ConfigMap/Secret changes → must restart pod to pick up change
+
+        # VOLUME MOUNTS
+        volumes:
+        - name: config-volume
+          configMap:
+            name: feastflow-config
+        # Volumes allow mounting data into containers:
+        #   ├─ ConfigMap volumes: mount as files (not env vars)
+        #   ├─ Secret volumes: mount as files
+        #   ├─ PersistentVolume: mount storage
+        #   └─ Allows app to read JSON/YAML config files if needed
+
+        # RESOURCE MANAGEMENT
+        resources:
+          requests:
+            cpu: 100m          # Guaranteed minimum CPU (1000m = 1 core)
+            memory: 128Mi      # Guaranteed minimum RAM
+          limits:
+            cpu: 500m          # Hard limit (container throttled above)
+            memory: 512Mi      # Hard limit (container killed if exceeded)
+        # How Scheduler uses this:
+        #   ├─ Requests: Scheduler checks "Can node fit 100m CPU + 128Mi RAM?"
+        #   │  └─ If yes → Scheduler assigns pod
+        #   ├─ Limits: kubelet enforces these at runtime
+        #   │  └─ CPU limit: container slowed down (throttled)
+        #   │  └─ Memory limit: container killed if exceeded (OOMKill)
+        #   └─ Quality of Service (QoS):
+        #      └─ Requests = Limits → Guaranteed (highest priority, won't be evicted)
+        #      └─ Only Limits → Burstable (medium priority)
+        #      └─ Only Requests → Burstable (medium priority)
+        #      └─ Neither → BestEffort (lowest priority, first to evict)
+
+        # HEALTH CHECKS
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+          timeoutSeconds: 5
+        # Why liveness probe?
+        #   ├─ Container running ≠ App healthy
+        #   ├─ App might be in deadlock, zombie state, memory leak
+        #   ├─ kubelet periodically: GET /api/health
+        #   ├─ If 3 consecutive failures (30s) → kubelet restarts container
+        #   └─ Automatic recovery from app hangs (without admin intervention)
+
+        readinessProbe:
+          httpGet:
+            path: /api/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 2
+          timeoutSeconds: 3
+        # Why readiness probe?
+        #   ├─ Pod running ≠ Pod ready to serve traffic
+        #   ├─ During startup: loading data, connecting to database
+        #   ├─ kubelet checks: GET /api/ready
+        #   ├─ If not ready: Service REMOVES pod from endpoints
+        #   │  └─ Traffic doesn't go to this pod yet
+        #   ├─ When ready: Service ADDS pod back to endpoints
+        #   └─ Prevents sending traffic to warming-up pods
+
+---
+################################################################################################
+# 6. SERVICE - Load Balancing & Service Discovery
+################################################################################################
+# A Service provides stable network endpoint for accessing pods.
+# Demonstrates: Load Balancing, Service Discovery, Decoupling
+#
+# Why Services?
+#   ├─ Pod IPs are ephemeral (new pod after crash = different IP)
+#   ├─ Service has stable IP + DNS name
+#   ├─ kube-proxy maintains: Service IP → [pod-1-ip, pod-2-ip, pod-3-ip]
+#   ├─ Load balances traffic across pods
+#   └─ Frontend doesn't need to know about pod IPs
+#
+# Kubernetes Components Involved:
+#   ├─ API Server: Stores Service definition in etcd
+#   ├─ Service Controller: Creates Endpoints object with pod IPs
+#   ├─ kube-proxy: On every node, configures iptables/IPVS rules
+#   ├─ CoreDNS: Resolves service DNS names to Service IP
+#   └─ Pod-to-Pod: IP routing within cluster
+#
+# How Traffic Flows:
+#   Frontend Pod → DNS lookup "feastflow-backend"
+#   → CoreDNS responds: "10.96.0.100" (Service IP, never changes)
+#   → iptables rule (installed by kube-proxy): "10.96.0.100:5000 → ?"
+#   → kube-proxy maintains list: [10.244.0.5, 10.244.0.6, 10.244.0.7]
+#   → iptables DNAT: Redirects to one of: 10.244.0.5, 10.244.0.6, or 10.244.0.7
+#   → Selected backend pod handles request
+#   → Load balanced automatically
+#
+kind: Service
+metadata:
+  name: feastflow-backend
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: backend
+  annotations:
+    description: "Backend API service - ClusterIP for internal pod-to-pod communication"
+spec:
+  type: ClusterIP  # Service type determines accessibility
+  # ClusterIP options:
+  #   ├─ ClusterIP (this): Only accessible within cluster (pod-to-pod)
+  #   │  └─ DNS: feastflow-backend.feastflow.svc.cluster.local
+  #   │  └─ Use case: Pod-to-pod communication (frontend→backend)
+  #   ├─ NodePort: Accessible on every node's IP:NodePort
+  #   │  └─ DNS + Node IPs: 10.0.0.1:30000, 10.0.0.2:30000, etc.
+  #   │  └─ Use case: External access without load balancer
+  #   ├─ LoadBalancer: Cloud provider allocates external IP:port
+  #   │  └─ External access via cloud load balancer
+  #   │  └─ Use case: Public API, web app
+  #   └─ ExternalName: DNS CNAME to external service
+  #      └─ Access external services via internal DNS
+
+  # SERVICE ENDPOINTS SELECTION
+  selector:
+    app: feastflow
+    component: backend
+  # How service finds pods:
+  #   ├─ Service Controller watches pods with these labels
+  #   ├─ Creates Endpoints object with matching pod IPs
+  #   ├─ When pod added: Add IP to Endpoints
+  #   ├─ When pod removed: Remove IP from Endpoints
+  #   └─ kube-proxy watches Endpoints, updates iptables
+
+  # PORT MAPPING
+  ports:
+  - name: http
+    port: 5000            # Service port (what pods connect to)
+    targetPort: http      # Container port (from pod spec)
+    protocol: TCP
+  # Port differences:
+  #   ├─ port: 5000 → This is the Service IP:port
+  #   │  └─ Frontend accesses: http://feastflow-backend:5000/api
+  #   ├─ targetPort: http (resolves to containerPort: 5000)
+  #   │  └─ Because pod spec defines: containerPort: 5000, name: http
+  #   ├─ If targetPort is number: Direct to container port
+  #   └─ If targetPort is name: Looked up in pod spec
+
+  # SESSION AFFINITY (Optional)
+  sessionAffinity: None
+  # sessionAffinity options:
+  #   ├─ None (default): Load balance each request
+  #   │  └─ Request 1 → Pod A, Request 2 → Pod B
+  #   │  └─ Better distribution, resilient to pod crashes
+  #   ├─ ClientIP: Route same client to same pod
+  #   │  └─ Request 1 from 10.244.0.1 → Pod A
+  #   │  └─ Request 2 from 10.244.0.1 → Pod A
+  #   │  └─ Useful for stateful services (but backends are stateless here)
+  #   └─ sessionAffinityConfig.clientIPConfig.timeoutSeconds: 10800
+
+---
+################################################################################################
+# 7. STATEFULSET - Stateful Application (Database)
+################################################################################################
+# A StatefulSet manages pods with stable identity and storage.
+# Unlike Deployment (stateless), StatefulSet is for:
+#   ├─ Databases (need stable pod identity)
+#   ├─ Message queues (need ordering)
+#   ├─ Distributed systems (nodes have identity)
+#   └─ Any app requiring stable hostname
+#
+# StatefulSet vs Deployment:
+#   ├─ Deployment Pods:
+#   │  ├─ Named: feastflow-backend-abc123, feastflow-backend-xyz456 (random)
+#   │  ├─ Can be created/destroyed in any order
+#   │  ├─ No affinity to storage
+#   │  └─ Use case: Stateless services (web servers, APIs)
+#   │
+#   └─ StatefulSet Pods:
+#      ├─ Named: postgres-0, postgres-1, postgres-2 (ordinal)
+#      ├─ Created in order, destroyed in reverse
+#      ├─ Each pod gets dedicated PersistentVolume
+#      ├─ Pod identity persists even if pod recreated
+#      └─ Use case: Databases, stateful services
+#
+# For FeastFlow Database:
+#   ├─ postgres-0: Connects to postgres-pvc-0 (persistent storage)
+#   ├─ If pod crashes: New postgres-0 gets same PVC
+#   ├─ If node fails: Pod rescheduled on different node with same PVC
+#   ├─ Data persists: Previous databases accessible
+#   └─ Application stability: Always knows DB hostname (postgres-0)
+#
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: database
+  annotations:
+    description: "PostgreSQL database - stateful, stable identity and storage"
+spec:
+  serviceName: postgres  # Service managing this StatefulSet
+  replicas: 1            # For database: usually 1 in simple setup
+  # More advanced: replicas: 3 (primary + replicas) with replication
+  selector:
+    matchLabels:
+      app: feastflow
+      component: database
+
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: database
+    spec:
+      # Prevent pod from moving between nodes (storage tied to this pod)
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - "preferred-database-node"  # Optional: prefer specific node
+      # Note: This is optional. By default, StatefulSet allows pod to move.
+
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - containerPort: 5432
+          name: postgresql
+
+        # ENVIRONMENT VARIABLES
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: feastflow-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: feastflow-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: feastflow-secrets
+              key: DB_PASSWORD
+
+        # PERSISTENT VOLUME
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        # How it works:
+        #   ├─ volumeMounts: "Attach this volume to pod at this path"
+        #   ├─ volumeClaimTemplates: "Create PVC for each StatefulSet pod"
+        #   ├─ postgres-0: Gets postgres-0-storage PVC
+        #   ├─ postgres-1: Gets postgres-1-storage PVC
+        #   └─ If postgres-0 recreated, same PVC re-attached
+        
+        # HEALTH CHECKS
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U postgres
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        # Database readiness:
+        #   ├─ pg_isready: Checks if PostgreSQL is accepting connections
+        #   ├─ If false: Pod marked not-ready
+        #   ├─ kube-proxy removes from service endpoints
+        #   ├─ No traffic sent (safe, DB not ready)
+        #   └─ When DB ready: Pod added back
+
+        # RESOURCE LIMITS
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+
+  # PERSISTENT VOLUME CLAIM TEMPLATE
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 10Gi
+  # How it works:
+  #   ├─ For each pod, StatefulSet creates a PVC
+  #   ├─ postgres-0: Creates PVC named "postgres-storage-postgres-0"
+  #   ├─ postgres-1: Creates PVC named "postgres-storage-postgres-1"
+  #   ├─ Kubernetes provisions storage for each PVC
+  #   ├─ Pod mounts its PVC (not shared with other PostgreSQL pods)
+  #   ├─ When pod terminates: PVC persists (data saved)
+  #   ├─ When pod recreated: Same PVC re-attached
+  #   └─ Database data survives pod/node failures
+
+---
+################################################################################################
+# 8. INGRESS - External Access & HTTP Routing
+################################################################################################
+# Ingress routes external HTTP/HTTPS traffic to internal Kubernetes services.
+# Demonstrates: External Access, Virtual Hosting, SSL/TLS, Path-based routing
+#
+# Architecture Layer:
+#   External Clients (Browser, API)
+#       ↓ HTTP/HTTPS
+#   Ingress Controller (nginx-ingress, GKE Ingress, etc.)
+#       ↓ Routes based on hostname/path
+#   Kubernetes Services (ClusterIP)
+#       ↓
+#   Backend Pods
+#
+# How Ingress Works:
+#   ├─ Ingress object: Defines rules (hostname, path → service)
+#   ├─ Ingress Controller: Watches Ingress objects, configures reverse proxy
+#   ├─ Reverse Proxy: Routes traffic based on rules
+#   └─ For nginx-ingress:
+#      ├─ Controller is a Pod running nginx
+#      ├─ Pods requests: Find matching Ingress rules
+#      ├─ Updates nginx.conf dynamically
+#      ├─ Pod gets traffic on port 80/443
+#      └─ Forwards to Services
+#
+kind: Ingress
+metadata:
+  name: feastflow-ingress
+  namespace: feastflow
+  labels:
+    app: feastflow
+  annotations:
+    description: "Ingress - routes external traffic to internal services"
+    # Controller-specific annotations (nginx example)
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: feastflow.example.com  # or: any host if empty
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: feastflow-backend
+            port:
+              number: 5000
+        # Traffic routing for /api:
+        #   ├─ Host: feastflow.example.com
+        #   ├─ Path: /api (prefix match)
+        #   ├─ Forward to: feastflow-backend service, port 5000
+        #   ├─ Example: feastflow.example.com/api/restaurants
+        #   │  └─ Routed to: Service feastflow-backend:5000/api/restaurants
+        #   └─ Ingress Controller (nginx) handles this:
+        #      └─ upstream backend { server 10.96.0.100:5000; }
+        #         location /api { proxy_pass http://backend; }
+
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: feastflow-frontend
+            port:
+              number: 3000
+        # Default route for everything else:
+        #   ├─ Path: / (all other paths)
+        #   ├─ Forward to: feastflow-frontend service, port 3000
+        #   └─ Example: feastflow.example.com/
+        #      └─ Served by frontend (Next.js)
+
+  # Optional: TLS/SSL Configuration
+  tls:
+  - hosts:
+    - feastflow.example.com
+    secretName: feastflow-tls
+  # TLS configuration:
+  #   ├─ secretName: Reference Secret containing TLS certificate+key
+  #   ├─ Secret format: kubernetes.io/tls
+  #   │  └─ tls.crt: Certificate
+  #   │  └─ tls.key: Private key
+  #   ├─ Ingress Controller (nginx) uses to enable HTTPS
+  #   ├─ Traffic: Client →HTTPS→ nginx ingress →HTTP→ internal services
+  #   └─ TLS termination at Ingress (internal is HTTP)
+
+---
+################################################################################################
+# SUMMARY: How These Components Work Together
+################################################################################################
+#
+# 1. CONTROL PLANE DECISIONS:
+#    ├─ User: kubectl apply -f manifests.yaml
+#    ├─ API Server: Validates, stores in etcd
+#    ├─ Controllers: React to state changes
+#    └─ Scheduler: Assigns pods to nodes
+#
+# 2. WORKER NODES EXECUTE:
+#    ├─ kubelet: Polls API Server, sees pod assignment
+#    ├─ Container Runtime: Pulls image, starts container
+#    └─ kube-proxy: Updates network rules
+#
+# 3. CLUSTER NETWORKING:
+#    ├─ Pod IPs: ephemeral, change when pod restarts
+#    ├─ Service IPs: stable, maintained by kube-proxy + CoreDNS
+#    ├─ Endpoints: dynamic list of pod IPs behind service
+#    └─ Ingress: routes external traffic to services
+#
+# 4. FEASTFLOW ARCHITECTURE:
+#    ├─ Frontend Pod → (DNS: feastflow-backend) → Service IP
+#    ├─ Service IP → kube-proxy iptables → pod IPs
+#    ├─ Backend Pod → (DNS: postgres) → Service IP
+#    ├─ Service IP → kube-proxy iptables → postgres pod IP
+#    ├─ Postgres Pod → PersistentVolume → Storage
+#    └─ Client Requests → Ingress → Services → Pods
+#
+# 5. SELF-HEALING:
+#    ├─ Pod crashes → kubelet reports → ReplicaSet Controller sees mismatch
+#    ├─ "Need 3 pods, have 2" → Creates new pod
+#    ├─ Scheduler assigns to available node
+#    ├─ kubelet executes on that node
+#    ├─ Services automatically route to new pod
+#    └─ Zero admin intervention, automatic recovery
+#
+# 6. KEY PRINCIPLE: DECLARATIVE INSTEAD OF IMPERATIVE
+#    ├─ Old way (Docker Compose, manual scripts):
+#    │  └─ "Run these commands: docker run ..., docker exec ..., etc."
+#    │
+#    ├─ Kubernetes way:
+#    │  ├─ "Here's what I want: 3 backend pods, database with storage, etc."
+#    │  ├─ "I don't care HOW, just make it happen"
+#    │  └─ Controllers continuously reconcile: actual = desired
+#    │
+#    └─ Result: Self-healing, resilient, maintainable
+#
+################################################################################################

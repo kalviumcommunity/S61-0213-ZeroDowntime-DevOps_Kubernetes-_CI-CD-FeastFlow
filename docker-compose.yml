@@ -1,7 +1,42 @@
-version: "3.8"
+################################################################################################
+# Docker Compose Configuration for FeastFlow
+# 
+# Architecture Context:
+# =====================
+# This Docker Compose file orchestrates FeastFlow locally using Docker's built-in
+# container management. While similar in functionality to Kubernetes, Docker Compose
+# operates only on a single host, whereas Kubernetes is a cluster-wide orchestrator.
+#
+# Comparison:
+# ├─ Docker Compose: Single host only, manual scaling, no self-healing
+# ├─ Kubernetes: Multi-host cluster, automatic scaling, self-healing, production-grade
+#
+# For Development: Use this (Docker Compose) - simpler, local feedback loop
+# For Production: Use Kubernetes - distributed, resilient, auto-managed
+#
+# See devops/kubernetes/ directory for multi-host cluster setup
+################################################################################################
 
 services:
   # PostgreSQL Database
+  # 
+  # Kubernetes Equivalent: StatefulSet (devops/kubernetes/04-postgres-deployment.yaml)
+  #
+  # Architectural Role:
+  # └─ Data Persistence: All restaurant, order, user data stored here
+  #
+  # Docker Compose Behavior:
+  # ├─ container_name: Unique identifier on this host
+  # ├─ restart: Auto-restart if container crashes (single-host resilience)
+  # ├─ volumes: Mount postgres_data volume (persists even if container deleted)
+  # └─ healthcheck: Verify database is accepting connections
+  #
+  # Kubernetes Differences:
+  # ├─ StatefulSet: Provides pod identity (postgres-0, postgres-1, etc.)
+  # ├─ PersistentVolumeClaim: Abstract storage across cluster nodes
+  # ├─ Service: Stable DNS even if pod rescheduled to different node
+  # └─ No container_name needed (pod name becomes stable identifier)
+  #
   postgres:
     image: postgres:15-alpine
     container_name: feastflow-db
@@ -20,7 +55,37 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend API
+  # Backend API Service
+  #
+  # Kubernetes Equivalent: Deployment (devops/kubernetes/06-backend-deployment.yaml)
+  #
+  # Architectural Role:
+  # ├─ Handles REST API requests: /api/restaurants, /api/orders, /api/auth
+  # ├─ Business logic: Authentication, authorization, data validation
+  # ├─ Database connectivity: Node.js <-> PostgreSQL via connection pool
+  # └─ Frontend communication: Serves frontend via CORS
+  #
+  # Docker Compose Behavior:
+  # ├─ build: Build Docker image from ./backend directory
+  # ├─ depends_on: Ensure postgres is healthy before starting
+  # ├─ DB_HOST: "postgres" → Docker DNS resolves to postgres service
+  # │  └─ Same as Kubernetes: Service DNS (feastflow-backend)
+  # ├─ FRONTEND_URL: Frontend location (for CORS, redirects)
+  # └─ healthcheck: /api/health endpoint for container liveness
+  #
+  # Docker Compose Limitations:
+  # ├─ Scaling: Manual (edit docker-compose.yml, rebuild)
+  # ├─ Failover: No automatic restart on node failure (single node only)
+  # ├─ Updates: Downtime (stop old container, start new)
+  # └─ Resource limits: Set in docker-compose, enforced by Docker
+  #
+  # Kubernetes Advantages:
+  # ├─ Replicas: kubectl scale deployment/feastflow-backend --replicas=5
+  # ├─ Self-healing: Automatic pod restart on failure
+  # ├─ Rolling updates: Zero-downtime deployment (gradual pod replacement)
+  # ├─ Multi-node: Pods can run across cluster, survive node failures
+  # └─ Resource management: CPU/memory requests, limits, QoS classes
+  #
   backend:
     build: ./backend
     container_name: feastflow-backend
@@ -57,7 +122,39 @@ services:
       retries: 3
       start_period: 40s
 
-  # Frontend (Next.js)
+  # Frontend (Next.js Web Application)
+  #
+  # Kubernetes Equivalent: Deployment (devops/kubernetes/08-frontend-deployment.yaml)
+  #
+  # Architectural Role:
+  # ├─ Server-side rendering: Next.js renders pages on server
+  # ├─ Static assets: CSS, JavaScript, images served to browser
+  # ├─ Client-side navigation: React hooks for interactive features
+  # ├─ API integration: Calls backend APIs for dynamic data
+  # └─ User experience: Login, dashboard, restaurant browsing
+  #
+  # Docker Compose Behavior:
+  # ├─ build: Build Next.js image (includes npm build step)
+  # ├─ depends_on: Waits for backend to be healthy
+  # ├─ NEXT_PUBLIC_API_URL: "http://localhost:5000/api"
+  # │  └─ Client-side (exposed to browser), points to backend
+  # ├─ Port 3000: Next.js development/production server
+  # └─ No explicit healthcheck (Next.js handles internally)
+  #
+  # Docker Compose Limitations:
+  # ├─ Scaling: Can't run multiple instances (port 3000 conflict)
+  # ├─ Load balancing: Docker Compose has no built-in LB for multiple instances
+  # ├─ Service discovery: Hardcoded localhost:3000
+  # └─ External access: Port 3000 directly exposed (not suitable for production)
+  #
+  # Kubernetes Advantages:
+  # ├─ Service abstraction: feastflow-frontend DNS resolves dynamically
+  # ├─ Ingress: Proper HTTP routing, SSL/TLS, multiple backends
+  # ├─ Multi-replicas: kubectl scale deployment/feastflow-frontend --replicas=10
+  # ├─ Load balancing: Service automatically distributes traffic
+  # ├─ Monitoring: Built-in readiness/liveness probes
+  # └─ External IPs: LoadBalancer or Ingress manages public access
+  #
   frontend:
     build:
       context: ./frontend/app
@@ -72,9 +169,58 @@ services:
       - "3000:3000"
 
 volumes:
+  # Persistent storage for PostgreSQL
+  # 
+  # Docker Compose: Local volume (on host machine at /var/lib/docker/volumes/)
+  # Kubernetes: PersistentVolume (can be NFS, cloud storage, local, etc.)
+  #
+  # Docker Compose Persistence Model:
+  # └─ Volume lifecycle tied to Docker daemon on single host
+  #    ├─ Survives container restart
+  #    ├─ Survives image rebuild
+  #    └─ Lost if volume manually deleted or Docker daemon removed
+  #
+  # Kubernetes Persistence Model:
+  # └─ PersistentVolume independent from pods
+  #    ├─ Pod terminated → PV persists
+  #    ├─ Pod rescheduled to different node → PV follows (via storage provisioner)
+  #    ├─ Cluster-wide storage (not tied to single node)
+  #    └─ Can use cloud storage (AWS EBS, GCP Persistent Disk, Azure Disk)
+  #
   postgres_data:
     driver: local
 
 networks:
+  # Docker Compose Networking
+  #
+  # Default Behavior:
+  # └─ All services in docker-compose.yml automatically on same network
+  #    ├─ Service names resolve via Docker DNS (127.0.0.11:53)
+  #    ├─ No port mapping needed for inter-service communication
+  #    └─ "postgres" resolves to postgres service IP
+  #
+  # Docker Compose Network Model:
+  # └─ Single host bridge network
+  #    └─ postgres service IP: 172.18.0.2 (example)
+  #    └─ backend service IP: 172.18.0.3
+  #    └─ frontend service IP: 172.18.0.4
+  #    └─ All on docker network driver, local to single host
+  #
+  # Kubernetes Network Model:
+  # └─ Cluster-wide flat network (Pod CIDR: 10.244.0.0/16)
+  #    ├─ Pod IPs: 10.244.1.x, 10.244.2.x, etc. (span multiple nodes)
+  #    ├─ Service IPs: 10.96.0.0/12 (stable cluster IPs)
+  #    ├─ Pod-to-pod routing handled by CNI plugin
+  #    └─ Multi-node networking automatically configured
+  #
+  # For Docker Compose Development:
+  # └─ Single network sufficient for entire FeastFlow stack
+  #
+  # For Kubernetes Production:
+  # └─ Network policies (NetworkPolicy objects) restrict pod communication
+  #    ├─ Example: Only frontend can reach backend
+  #    ├─ Only backend can reach database
+  #    └─ Fine-grained security isolation
+  #
   default:
     name: feastflow-network
