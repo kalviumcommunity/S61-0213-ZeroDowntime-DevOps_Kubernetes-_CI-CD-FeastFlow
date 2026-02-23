@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
+import cartRoutes from './routes/cartRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 
 // Load env vars
 dotenv.config();
@@ -28,6 +30,8 @@ app.use(helmet());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check route
 app.get('/api/health', (req: Request, res: Response) => {
@@ -46,6 +50,8 @@ app.get('/', (req: Request, res: Response) => {
     endpoints: {
       health: '/api/health',
       auth: '/api/auth',
+      cart: '/api/cart',
+      dashboard: '/api/dashboard',
     },
   });
 });

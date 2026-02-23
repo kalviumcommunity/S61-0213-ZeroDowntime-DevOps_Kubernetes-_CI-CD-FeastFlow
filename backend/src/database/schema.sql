@@ -72,6 +72,33 @@ CREATE TABLE IF NOT EXISTS order_items (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create cart table
+CREATE TABLE IF NOT EXISTS cart (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id)
+);
+
+-- Create cart_items table
+CREATE TABLE IF NOT EXISTS cart_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cart_id UUID REFERENCES cart(id) ON DELETE CASCADE,
+    menu_item_id UUID NOT NULL,
+    menu_item_name VARCHAR(255) NOT NULL,
+    menu_item_price DECIMAL(10,2) NOT NULL,
+    menu_item_description TEXT,
+    menu_item_category VARCHAR(100),
+    restaurant_id UUID NOT NULL,
+    restaurant_name VARCHAR(255) NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(cart_id, menu_item_id)
+);
+
 -- Create audit_log table for tracking admin actions
 CREATE TABLE IF NOT EXISTS audit_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -94,16 +121,28 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_restaurants_updated_at ON restaurants;
 CREATE TRIGGER update_restaurants_updated_at BEFORE UPDATE ON restaurants
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_menu_items_updated_at ON menu_items;
 CREATE TRIGGER update_menu_items_updated_at BEFORE UPDATE ON menu_items
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_cart_updated_at ON cart;
+CREATE TRIGGER update_cart_updated_at BEFORE UPDATE ON cart
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_cart_items_updated_at ON cart_items;
+CREATE TRIGGER update_cart_items_updated_at BEFORE UPDATE ON cart_items
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Add check constraints

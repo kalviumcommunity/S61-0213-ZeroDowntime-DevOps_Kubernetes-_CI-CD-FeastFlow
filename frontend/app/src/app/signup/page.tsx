@@ -43,7 +43,12 @@ export default function SignupPage() {
       const result = await register(registerData);
       
       if (result.success) {
-        router.push('/');
+        // Redirect to admin dashboard if email ends with @feastflow.com
+        if (formData.email.toLowerCase().endsWith('@feastflow.com')) {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       } else {
         setError(result.message || 'Registration failed');
       }

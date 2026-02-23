@@ -37,6 +37,7 @@ export interface User {
   lastName: string;
   role: UserRole;
   phoneNumber?: string;
+  address?: string;
   createdAt?: string;
 }
 

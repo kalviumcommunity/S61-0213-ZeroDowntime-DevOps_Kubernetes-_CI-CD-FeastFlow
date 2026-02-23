@@ -23,7 +23,12 @@ export default function LoginPage() {
     try {
       const result = await login(formData);
       if (result.success) {
-        router.push('/');
+        // Redirect to admin dashboard if email ends with @feastflow.com
+        if (formData.email.toLowerCase().endsWith('@feastflow.com')) {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       } else {
         setError(result.message || 'Login failed');
       }
