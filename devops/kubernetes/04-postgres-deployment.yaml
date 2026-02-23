@@ -1,0 +1,83 @@
+# PostgreSQL StatefulSet
+# StatefulSet provides:
+# - Stable network identity
+# - Ordered deployment and scaling
+# - Stable persistent storage
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: database
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: feastflow
+      component: database
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        
+        # Environment variables from ConfigMap and Secrets
+        envFrom:
+        - configMapRef:
+            name: feastflow-config
+        - secretRef:
+            name: feastflow-secrets
+        
+        # Liveness probe: Kubernetes responsibility to restart on failure
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Readiness probe: Remove from service if not ready
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
+        # Resource management: K8s schedules based on these
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        # Persistent volume mount
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+          subPath: postgres  # Avoid .lost+found conflicts
+      
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc

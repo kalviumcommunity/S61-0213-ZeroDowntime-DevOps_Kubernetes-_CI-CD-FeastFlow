@@ -1,0 +1,88 @@
+# Ingress Controller for external access
+# K8s manages routing, SSL termination, and load balancing
+# Replaces manual nginx/Apache configuration
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: feastflow-ingress
+  namespace: feastflow
+  labels:
+    app: feastflow
+  annotations:
+    # Ingress class (nginx, traefik, etc.)
+    kubernetes.io/ingress.class: "nginx"
+    
+    # SSL redirect (uncomment when cert is ready)
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # CORS configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    
+    # Connection limits
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+    
+    # For production: cert-manager integration
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  # TLS configuration (for HTTPS)
+  # tls:
+  # - hosts:
+  #   - feastflow.example.com
+  #   secretName: feastflow-tls
+  
+  rules:
+  # Default host for local/minikube testing
+  - host: feastflow.local
+    http:
+      paths:
+      # Frontend routes
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: feastflow-frontend
+            port:
+              number: 3000
+      
+      # API routes
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: feastflow-backend
+            port:
+              number: 5000
+  
+  # For cloud deployments, use actual domain
+  # - host: feastflow.example.com
+  #   http:
+  #     paths:
+  #     - path: /
+  #       pathType: Prefix
+  #       backend:
+  #         service:
+  #           name: feastflow-frontend
+  #           port:
+  #             number: 3000
+
+---
+# Alternative: LoadBalancer service for cloud providers
+# Uncomment for AWS ELB, GCP Load Balancer, Azure Load Balancer
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: feastflow-loadbalancer
+#   namespace: feastflow
+# spec:
+#   type: LoadBalancer
+#   ports:
+#   - port: 80
+#     targetPort: 3000
+#     protocol: TCP
+#   selector:
+#     app: feastflow
+#     component: frontend

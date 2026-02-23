@@ -1,0 +1,115 @@
+# Backend API Deployment
+# Demonstrates K8s responsibilities:
+# - Self-healing: Auto-restart on failure
+# - Replication: Multiple replicas for HA
+# - Rolling updates: Zero-downtime deployments
+# - Load balancing: Traffic distributed across pods
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feastflow-backend
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: backend
+spec:
+  replicas: 2  # High availability with 2 instances
+  
+  # Rolling update strategy: K8s manages zero-downtime updates
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Max 1 extra pod during update
+      maxUnavailable: 0  # Keep all current pods until new ones ready
+  
+  selector:
+    matchLabels:
+      app: feastflow
+      component: backend
+  
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: backend
+        version: v1.0.0
+    spec:
+      # Init container: Run D migrations before starting app
+      # Commented out - production image doesn't have dev dependencies
+      # Run migrations manually: kubectl exec -it deployment/feastflow-backend -n feastflow -- npm run migrate
+      # initContainers:
+      # - name: db-migrations
+      #   image: feastflow-backend:latest
+      #   imagePullPolicy: Never
+      #   command: ['npm', 'run', 'migrate']
+      #   envFrom:
+      #   - configMapRef:
+      #       name: feastflow-config
+      #   - secretRef:
+      #       name: feastflow-secrets
+      
+      containers:
+      - name: backend
+        image: feastflow-backend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+          name: http
+          protocol: TCP
+        
+        # Configuration injection from ConfigMap and Secrets
+        envFrom:
+        - configMapRef:
+            name: feastflow-config
+        - secretRef:
+            name: feastflow-secrets
+        
+        # Health check endpoint: K8s uses this for self-healing
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 5000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Readiness probe: Only send traffic when ready
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
+        # Resource requests/limits: K8s scheduling and QoS
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        # Graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]
+      
+      # Pod scheduling preferences
+      affinity:
+        # Prefer spreading pods across different nodes
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: component
+                  operator: In
+                  values:
+                  - backend
+              topologyKey: kubernetes.io/hostname

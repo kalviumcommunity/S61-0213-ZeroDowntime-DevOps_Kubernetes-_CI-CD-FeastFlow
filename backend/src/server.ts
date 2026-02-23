@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import cartRoutes from './routes/cartRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+import { query } from './database/db';
 
 // Load env vars
 dotenv.config();
@@ -33,13 +34,52 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Health check route
-app.get('/api/health', (req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date().toISOString(),
-  });
+// Health check route - For Kubernetes liveness and readiness probes
+app.get('/api/health', async (req: Request, res: Response) => {
+  try {
+    // Check database connectivity
+    await query('SELECT 1');
+    
+    res.status(200).json({
+      status: 'healthy',
+      success: true,
+      message: 'Server is running',
+      timestamp: new Date().toISOString(),
+      service: 'feastflow-backend',
+      version: process.env.APP_VERSION || '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      database: 'connected',
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      success: false,
+      message: 'Service unavailable',
+      timestamp: new Date().toISOString(),
+      service: 'feastflow-backend',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      database: 'disconnected',
+    });
+  }
+});
+
+// Readiness check route - Kubernetes can use this to determine if pod is ready
+app.get('/api/ready', async (req: Request, res: Response) => {
+  try {
+    // Check if application is ready to serve requests
+    await query('SELECT 1');
+    
+    res.status(200).json({
+      status: 'ready',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'not_ready',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Root route

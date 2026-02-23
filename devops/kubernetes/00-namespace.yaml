@@ -1,0 +1,10 @@
+# Namespace for FeastFlow application
+# Provides isolation, resource quotas, and access control
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: feastflow
+  labels:
+    app: feastflow
+    environment: production
+    managed-by: kubernetes
