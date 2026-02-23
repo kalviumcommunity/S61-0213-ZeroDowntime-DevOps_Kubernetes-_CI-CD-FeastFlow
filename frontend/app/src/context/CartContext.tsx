@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { CartItem, MenuItem, Restaurant } from '@/types';
 import { useAuth } from './AuthContext';
 
@@ -20,38 +20,14 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
   const { user } = useAuth();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-  // Load cart from backend when user logs in
-  useEffect(() => {
-    if (user) {
-      loadCart();
-    } else {
-      // Clear cart when user logs out
-      setCart([]);
-      setIsInitialized(true);
-    }
-  }, [user]);
-
-  // Load cart from backend when user logs in
-  useEffect(() => {
-    if (user) {
-      loadCart();
-    } else {
-      // Clear cart when user logs out
-      setCart([]);
-      setIsInitialized(true);
-    }
-  }, [user]);
-
-  const loadCart = async () => {
+  const loadCart = useCallback(async () => {
     const token = localStorage.getItem('token');
     
     if (!token) {
-      setIsInitialized(true);
       return;
     }
 
@@ -66,8 +42,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data.items) {
+          interface BackendCartItem {
+            menu_item_id: string;
+            menu_item_name: string;
+            menu_item_price: string;
+            menu_item_description: string;
+            menu_item_category: string;
+            restaurant_id: string;
+            restaurant_name: string;
+            quantity: number;
+          }
           // Convert backend format to frontend format
-          const cartItems: CartItem[] = data.data.items.map((item: any) => ({
+          const cartItems: CartItem[] = data.data.items.map((item: BackendCartItem) => ({
             menuItem: {
               id: item.menu_item_id,
               name: item.menu_item_name,
@@ -87,8 +73,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error loading cart from backend:', error);
     }
-    setIsInitialized(true);
-  };
+  }, [API_URL]);
+
+  // Load cart from backend when user logs in
+  useEffect(() => {
+    if (user) {
+      loadCart();
+    } else {
+      // Clear cart when user logs out
+      setCart([]);
+    }
+  }, [user, loadCart]);
 
   const addToCart = async (menuItem: MenuItem, restaurant: Restaurant) => {
     const token = localStorage.getItem('token');

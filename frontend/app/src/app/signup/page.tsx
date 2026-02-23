@@ -39,7 +39,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const { confirmPassword, ...registerData } = formData;
+      const { confirmPassword: _confirmPassword, ...registerData } = formData;
       const result = await register(registerData);
       
       if (result.success) {
@@ -52,7 +52,7 @@ export default function SignupPage() {
       } else {
         setError(result.message || 'Registration failed');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);

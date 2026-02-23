@@ -20,17 +20,20 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) {
       router.push('/login');
-      return;
     }
-
-    setFormData({
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      email: user.email || '',
-      phoneNumber: user.phoneNumber || '',
-      address: user.address || '',
-    });
   }, [user, router]);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phoneNumber: user.phoneNumber || '',
+        address: user.address || '',
+      });
+    }
+  }, [user]);
 
   const handleSave = async () => {
     // TODO: Implement API call to update profile
