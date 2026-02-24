@@ -1,0 +1,132 @@
+# ReplicaSet Example for Backend
+# A ReplicaSet ensures that a specified number of pod replicas are running at any given time
+# It provides self-healing and high availability
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: feastflow-backend-replicaset
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: backend
+    managed-by: replicaset
+spec:
+  # The desired number of replicas
+  # Kubernetes will maintain exactly this many pods
+  replicas: 3
+  
+  # Selector defines which pods this ReplicaSet manages
+  # It matches pods with these labels
+  selector:
+    matchLabels:
+      app: feastflow
+      component: backend
+      managed-by: replicaset
+  
+  # Template defines the pod specification
+  # This is the blueprint for each replica
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: backend
+        managed-by: replicaset
+    spec:
+      containers:
+      - name: backend
+        image: feastflow-backend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5001
+          name: http
+        
+        env:
+        - name: PORT
+          value: "5001"
+        - name: NODE_ENV
+          value: "development"
+        
+        envFrom:
+        - configMapRef:
+            name: feastflow-config
+        - secretRef:
+            name: feastflow-secrets
+        
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 5
+          periodSeconds: 3
+
+---
+# ReplicaSet Example for Frontend
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: feastflow-frontend-replicaset
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: frontend
+    managed-by: replicaset
+spec:
+  replicas: 2
+  
+  selector:
+    matchLabels:
+      app: feastflow
+      component: frontend
+      managed-by: replicaset
+  
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: frontend
+        managed-by: replicaset
+    spec:
+      containers:
+      - name: frontend
+        image: feastflow-frontend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3000
+          name: http
+        
+        env:
+        - name: PORT
+          value: "3000"
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://feastflow-backend:5001"
+        
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
