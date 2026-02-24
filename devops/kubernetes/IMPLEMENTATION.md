@@ -69,6 +69,18 @@ Quick reference for:
 - Key concepts demonstrated
 - Monitoring and observability
 
+### 6. Local Kubernetes Cluster Workflow (kind)
+
+**Files**:
+- `devops/kubernetes/kind-cluster.yaml`
+- `devops/kubernetes/setup-kind.sh`
+
+Includes:
+- Single local cluster setup using **kind**
+- `kubectl` connectivity verification commands
+- Image build + load flow for local manifests (`imagePullPolicy: Never`)
+- One-command cluster bootstrap for Sprint #3 local experimentation
+
 ---
 
 ## 🎯 Key Kubernetes Concepts Demonstrated

@@ -86,6 +86,45 @@ kubernetes/
 - kubectl configured
 - Docker images built and pushed to registry
 
+## Local Cluster Setup (kind)
+
+This project includes a local `kind` workflow for Sprint #3 experimentation.
+
+### Prerequisites
+- Docker
+- kind
+- kubectl
+
+### Create and Verify Local Cluster
+
+```bash
+bash devops/kubernetes/setup-kind.sh
+```
+
+The script will:
+1. Create a local cluster named `feastflow-local`
+2. Build local images used by manifests (`feastflow-backend:latest`, `feastflow-frontend:latest`)
+3. Load images into the kind cluster
+4. Apply FeastFlow Kubernetes manifests
+5. Verify connectivity and rollout status
+
+### kubectl Verification Commands
+
+```bash
+kubectl config current-context
+kubectl cluster-info
+kubectl get nodes
+kubectl get pods -n feastflow
+kubectl get services -n feastflow
+```
+
+### Why This Local Cluster Matters
+
+Using a local cluster validates Kubernetes workflows before cloud deployment:
+- confirms manifests are deployable
+- confirms `kubectl` connectivity and troubleshooting flow
+- supports safe testing of rollout/rollback behavior in development
+
 ### Deploy FeastFlow
 
 ```bash
@@ -196,3 +235,4 @@ kubectl top nodes
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [12-Factor App Methodology](https://12factor.net/)
 - [Cloud Native Computing Foundation](https://www.cncf.io/)
+
