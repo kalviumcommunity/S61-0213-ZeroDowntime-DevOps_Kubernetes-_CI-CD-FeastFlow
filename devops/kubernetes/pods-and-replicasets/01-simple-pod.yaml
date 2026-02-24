@@ -1,0 +1,96 @@
+# Simple Pod Example
+# A Pod is the smallest deployable unit in Kubernetes
+# It represents a single instance of a running process in your cluster
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: feastflow-backend-pod
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: backend
+    type: standalone-pod
+spec:
+  containers:
+  - name: backend
+    image: feastflow-backend:latest
+    imagePullPolicy: Never  # Use local image for kind cluster
+    ports:
+    - containerPort: 5001
+      name: http
+    env:
+    - name: PORT
+      value: "5001"
+    - name: NODE_ENV
+      value: "development"
+    # Environment variables from ConfigMap and Secrets
+    envFrom:
+    - configMapRef:
+        name: feastflow-config
+    - secretRef:
+        name: feastflow-secrets
+    
+    # Resource limits - important for cluster stability
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+    
+    # Health checks - Kubernetes uses these to manage pod lifecycle
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5001
+      initialDelaySeconds: 10
+      periodSeconds: 5
+    
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 5001
+      initialDelaySeconds: 5
+      periodSeconds: 3
+
+---
+# Frontend Pod Example
+apiVersion: v1
+kind: Pod
+metadata:
+  name: feastflow-frontend-pod
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: frontend
+    type: standalone-pod
+spec:
+  containers:
+  - name: frontend
+    image: feastflow-frontend:latest
+    imagePullPolicy: Never
+    ports:
+    - containerPort: 3000
+      name: http
+    env:
+    - name: PORT
+      value: "3000"
+    - name: NEXT_PUBLIC_API_URL
+      value: "http://feastflow-backend:5001"
+    
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 3000
+      initialDelaySeconds: 10
+      periodSeconds: 5
