@@ -248,6 +248,7 @@ Deployments reference exact versions
 **✨ Sprint 3 Implementation: Docker Hub Registry Workflow**
 
 A complete Docker registry workflow has been implemented for this project, demonstrating:
+
 - Image building and multi-tag strategy (`latest`, `sprint3`, `commit-<SHA>`)
 - Pushing/pulling images from Docker Hub
 - CI/CD automation with GitHub Actions
@@ -256,6 +257,7 @@ A complete Docker registry workflow has been implemented for this project, demon
 **📖 Documentation:** See [devops/registry/dockerhub-usage.md](devops/registry/dockerhub-usage.md) for detailed setup instructions, scripts, and real-world rollback scenarios.
 
 **🔧 Scripts:**
+
 - `devops/registry/build-and-tag.sh` - Build and tag images locally
 - `devops/registry/push.sh` - Push images to Docker Hub
 
@@ -1077,7 +1079,6 @@ Kubernetes runs and heals systems
 
 Clear separation ensures safe, predictable, zero-downtime deployments.
 
-
 Contributions
 
 Designed the complete High-Level Design (HLD) and Low-Level Design (LLD) for the zero-downtime deployment architecture.
@@ -1106,14 +1107,15 @@ Applied structured Git practices including feature-based branching, meaningful c
 
 Docker-Architecture-Explanation
 
-# 🍽 Feast Flow – Sprint #3  
+# 🍽 Feast Flow – Sprint #3
+
 # Understanding Docker Architecture: Images, Containers, and Layers
 
 ---
 
 ## 1️⃣ Purpose of This Document
 
-This document explains Docker architecture in the context of the Feast Flow DevOps system.  
+This document explains Docker architecture in the context of the Feast Flow DevOps system.
 
 The goal is to demonstrate a clear understanding of:
 
@@ -1163,6 +1165,7 @@ Key properties:
 In Feast Flow:
 
 Each code change:
+
 1. Triggers CI.
 2. Builds a new Docker image.
 3. Tags it using commit SHA.
@@ -1210,7 +1213,7 @@ A container is a running instance of an image.
 Important distinction:
 
 Image → Immutable blueprint  
-Container → Running process with writable layer  
+Container → Running process with writable layer
 
 Containers add a thin writable layer on top of the image.
 
@@ -1249,13 +1252,14 @@ Container Created
 ↓
 Pod Runs Application
 
-
 Build-time concerns:
+
 - Dependencies
 - Filesystem setup
 - Application packaging
 
 Runtime concerns:
+
 - Environment variables
 - Resource allocation
 - Health checks
@@ -1290,16 +1294,19 @@ In Feast Flow, efficient Docker usage ensures:
 In our DevOps architecture:
 
 CI:
+
 - Builds Docker image
 - Validates image
 - Pushes image to registry
 
 CD:
+
 - Pulls immutable image
 - Updates Kubernetes deployment
 - Triggers rolling update
 
 Kubernetes:
+
 - Runs containers
 - Self-heals failed pods
 - Maintains replica count
@@ -1309,7 +1316,7 @@ Clear responsibility separation:
 Docker builds artifacts  
 CI validates artifacts  
 CD deploys artifacts  
-Kubernetes runs artifacts  
+Kubernetes runs artifacts
 
 ---
 
@@ -1317,7 +1324,7 @@ Kubernetes runs artifacts
 
 “Editing files inside a container updates the image” → Incorrect  
 “Docker image changes at runtime” → Incorrect  
-“Containers persist state by default” → Incorrect  
+“Containers persist state by default” → Incorrect
 
 Correct understanding:
 
@@ -1461,11 +1468,13 @@ The Dockerfile ensures:
 In Feast Flow CI/CD:
 
 CI:
+
 - Builds image
 - Tags image with commit SHA
 - Pushes image to registry
 
 CD:
+
 - Deploys immutable image to Kubernetes
 
 This guarantees consistent deployment across 30+ cities.
@@ -1492,3 +1501,38 @@ This design prevents slow builds and image growth.
 - Containers should run as non-root.
 - Dockerfiles must be deterministic.
 - Efficient Dockerfiles improve DevOps reliability.
+
+Sprint #3 – ConfigMaps & Secrets
+Overview
+
+Externalized configuration for better security, flexibility, and environment portability. Sensitive data is moved to Kubernetes Secrets; non-sensitive settings use ConfigMaps.
+
+Configuration
+
+ConfigMap: Non-sensitive settings like app name, log level, API endpoints.
+
+Secret: Sensitive data like passwords and tokens.
+
+Usage
+
+Injected into the Deployment as environment variables:
+
+env:
+
+- name: APP_NAME
+  valueFrom:
+  configMapKeyRef:
+  name: app-config
+  key: app_name
+- name: DB_PASSWORD
+  valueFrom:
+  secretKeyRef:
+  name: app-secret
+  key: db_password
+  Benefits
+
+No hardcoded configuration
+
+Secure handling of secrets
+
+Easy environment-specific changes
