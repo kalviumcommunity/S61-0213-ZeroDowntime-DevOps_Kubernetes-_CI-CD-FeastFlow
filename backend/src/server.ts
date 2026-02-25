@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import cartRoutes from './routes/cartRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+import networkRoutes from './routes/networkRoutes';
 import { query } from './database/db';
 
 // Load env vars
@@ -38,6 +39,7 @@ app.use(helmet());
 app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/network', networkRoutes);
 
 // Health check route - For Kubernetes liveness and readiness probes
 app.get('/api/health', async (req: Request, res: Response) => {

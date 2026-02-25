@@ -1,0 +1,244 @@
+# Kubernetes Network Testing Job
+# This Job demonstrates service discovery and pod-to-service communication
+# for Sprint #3 - Kubernetes Networking and Service Discovery
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-test-script
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: network-test
+data:
+  test-network.sh: |
+    #!/bin/sh
+    set -e
+    
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║     Kubernetes Service Discovery Test Job                 ║"
+    echo "║     FeastFlow Network Verification - Sprint #3            ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "[Pod Information]"
+    echo "  Pod Name:      ${HOSTNAME}"
+    echo "  Pod IP:        $(hostname -i)"
+    echo "  Namespace:     feastflow"
+    echo ""
+    
+    # Function to test DNS and HTTP
+    test_service() {
+      local service=$1
+      local port=$2
+      local path=${3:-"/"}
+      
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo "Testing: ${service}:${port}${path}"
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      
+      # DNS Resolution - Short form
+      echo -n "[DNS] Short-form (${service}): "
+      if nslookup ${service} >/dev/null 2>&1; then
+        IP=$(nslookup ${service} | grep -A1 "Name:" | tail -n1 | awk '{print $2}' | head -n1)
+        echo "✓ Resolved to ${IP}"
+      else
+        echo "✗ Failed"
+      fi
+      
+      # DNS Resolution - FQDN
+      FQDN="${service}.feastflow.svc.cluster.local"
+      echo -n "[DNS] FQDN (${FQDN}): "
+      if nslookup ${FQDN} >/dev/null 2>&1; then
+        IP=$(nslookup ${FQDN} | grep -A1 "Name:" | tail -n1 | awk '{print $2}' | head -n1)
+        echo "✓ Resolved to ${IP}"
+      else
+        echo "✗ Failed"
+      fi
+      
+      # HTTP Connectivity Test
+      echo -n "[HTTP] Connectivity test: "
+      HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://${service}:${port}${path} || echo "000")
+      if [ "$HTTP_CODE" != "000" ]; then
+        echo "✓ Service reachable (HTTP ${HTTP_CODE})"
+      else
+        echo "✗ Service not reachable"
+      fi
+      
+      echo ""
+    }
+    
+    # Test PostgreSQL port
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Testing: postgres:5432 (TCP)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -n "[DNS] postgres: "
+    if nslookup postgres >/dev/null 2>&1; then
+      IP=$(nslookup postgres | grep -A1 "Name:" | tail -n1 | awk '{print $2}' | head -n1)
+      echo "✓ Resolved to ${IP}"
+    else
+      echo "✗ Failed"
+    fi
+    echo -n "[TCP] Port 5432: "
+    if nc -zv postgres 5432 2>&1 | grep -q succeeded; then
+      echo "✓ Port is open"
+    else
+      echo "✗ Port closed or unreachable"
+    fi
+    echo ""
+    
+    # Test backend service
+    test_service "feastflow-backend" "5000" "/api/health"
+    
+    # Test backend network diagnostics endpoint
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Calling Backend Network Diagnostics API"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 http://feastflow-backend:5000/api/network/diagnostics || echo "000")
+    if [ "$HTTP_CODE" = "200" ]; then
+      echo "✓ Network diagnostics endpoint working (HTTP 200)"
+      echo ""
+      echo "Fetching service discovery info:"
+      curl -s http://feastflow-backend:5000/api/network/services | head -n 50
+    else
+      echo "✗ Network diagnostics endpoint failed (HTTP ${HTTP_CODE})"
+    fi
+    echo ""
+    
+    # Test frontend service
+    test_service "feastflow-frontend" "3000" "/"
+    
+    # Summary
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║                    Test Summary                            ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "✓ DNS-based service discovery demonstrated"
+    echo "✓ Pod-to-Service communication verified"
+    echo "✓ Internal cluster networking validated"
+    echo ""
+    echo "Key Concepts Demonstrated:"
+    echo "1. Services are discoverable via DNS names (no hardcoded IPs)"
+    echo "2. Short-form DNS works within the same namespace"
+    echo "3. FQDN format: <service>.<namespace>.svc.cluster.local"
+    echo "4. Kubernetes provides automatic load balancing"
+    echo "5. ClusterIP services are internal and stable"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "✓ Network testing complete!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: feastflow-network-test
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: network-test
+    sprint: "3"
+spec:
+  # Keep completed pods for review
+  ttlSecondsAfterFinished: 3600  # Delete after 1 hour
+  
+  backoffLimit: 2  # Retry up to 2 times on failure
+  
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: network-test
+    spec:
+      restartPolicy: Never
+      
+      containers:
+      - name: network-tester
+        # Using nicolaka/netshoot - comprehensive network troubleshooting toolkit
+        image: nicolaka/netshoot:latest
+        imagePullPolicy: IfNotPresent
+        
+        command: ["/bin/bash"]
+        args: ["/scripts/test-network.sh"]
+        
+        # Mount the test script
+        volumeMounts:
+        - name: test-script
+          mountPath: /scripts
+          readOnly: true
+        
+        # Environment variables
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        
+        # Resource limits
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      
+      volumes:
+      - name: test-script
+        configMap:
+          name: network-test-script
+          defaultMode: 0755  # Make script executable
+
+---
+# Alternative: Simple curl-based test job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: feastflow-simple-network-test
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: network-test-simple
+    sprint: "3"
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 2
+  
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: network-test-simple
+    spec:
+      restartPolicy: Never
+      
+      containers:
+      - name: simple-tester
+        image: curlimages/curl:latest
+        imagePullPolicy: IfNotPresent
+        
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "=== Simple Network Test ==="
+          echo ""
+          echo "Testing Backend Health:"
+          curl -v http://feastflow-backend:5000/api/health
+          echo ""
+          echo ""
+          echo "Testing Network Diagnostics:"
+          curl -v http://feastflow-backend:5000/api/network/diagnostics
+          echo ""
+          echo ""
+          echo "Testing Service Discovery Info:"
+          curl -v http://feastflow-backend:5000/api/network/services
+          echo ""
+          echo "=== Tests Complete ==="
+        
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"

@@ -64,6 +64,21 @@ spec:
         - secretRef:
             name: feastflow-secrets
         
+        # Additional environment variables from downward API
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        
         # Health check endpoint: K8s uses this for self-healing
         livenessProbe:
           httpGet:
