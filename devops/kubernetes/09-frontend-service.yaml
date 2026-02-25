@@ -9,7 +9,7 @@ metadata:
     app: feastflow
     component: frontend
 spec:
-  type: ClusterIP  # Use with Ingress for external access
+  type: NodePort  # Use with Ingress for external access
   
   ports:
   - port: 3000
