@@ -195,6 +195,20 @@ kubectl autoscale deployment feastflow-backend \
   -n feastflow
 ```
 
+### 7. Resource Requests and Limits Verification
+
+Use the dedicated script to prove that workloads schedule correctly with defined requests and stay constrained by limits.
+
+```bash
+bash devops/kubernetes/verify-resource-management.sh
+```
+
+```powershell
+.\devops\kubernetes\verify-resource-management.ps1
+```
+
+See `devops/kubernetes/RESOURCE_MANAGEMENT_DEMO.md` for the full Sprint #3 demonstration checklist.
+
 ## Cloud-Native Principles Applied
 
 1. **Containerized**: All services run in containers

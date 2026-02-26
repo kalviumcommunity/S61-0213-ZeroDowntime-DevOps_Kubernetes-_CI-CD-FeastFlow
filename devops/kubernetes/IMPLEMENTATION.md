@@ -81,6 +81,17 @@ Includes:
 - Image build + load flow for local manifests (`imagePullPolicy: Never`)
 - One-command cluster bootstrap for Sprint #3 local experimentation
 
+### 7. Resource Requests/Limits Verification Workflow
+
+**Files**:
+- `devops/kubernetes/verify-resource-management.sh`
+- `devops/kubernetes/RESOURCE_MANAGEMENT_DEMO.md`
+
+Includes:
+- Automated rollout + scheduling verification for postgres/backend/frontend
+- Runtime inspection of live Pod requests/limits via `jsonpath`
+- Optional `kubectl top` checks for observable runtime stability
+
 ---
 
 ## 🎯 Key Kubernetes Concepts Demonstrated
