@@ -92,7 +92,7 @@ spec:
         # Readiness probe: Only send traffic when ready
         readinessProbe:
           httpGet:
-            path: /api/health
+            path: /api/ready
             port: 5000
           initialDelaySeconds: 10
           periodSeconds: 5
