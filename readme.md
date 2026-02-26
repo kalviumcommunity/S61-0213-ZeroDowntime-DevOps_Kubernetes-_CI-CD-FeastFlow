@@ -90,6 +90,22 @@ Automatic rollback on failure
 
 Separate staging and production clusters
 
+Scaling Strategy
+
+**Manual Scaling**: Direct control over replica counts for predictable patterns
+
+**Horizontal Pod Autoscaler (HPA)**: Automatic scaling based on CPU/memory metrics
+
+- Backend: 2-10 replicas (scale at 70% CPU)
+- Frontend: 2-8 replicas (scale at 60% CPU)
+- Fast scale-up (0s delay), conservative scale-down (5-min stabilization)
+
+**Zero-downtime scaling**: Service maintains availability during all scaling operations
+
+**Resource-aware**: Proper CPU/memory limits enable metrics-based autoscaling
+
+📖 **[Complete Scaling Guide](devops/kubernetes/SCALING_GUIDE.md)** - Hands-on demos and HPA configuration
+
 Real-Time Updates Flow
 
 Admin updates pricing/menu via dashboard
