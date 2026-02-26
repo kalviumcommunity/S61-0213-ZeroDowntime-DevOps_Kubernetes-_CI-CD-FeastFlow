@@ -19,16 +19,16 @@ This directory contains Kubernetes manifests and documentation for deploying Fea
 
 ### Kubernetes Responsibilities vs Developer/Ops
 
-| Responsibility | Before K8s (Manual) | With Kubernetes |
-|----------------|---------------------|-----------------|
-| Container restart on crash | Manual monitoring, restart scripts | Automatic via ReplicaSets |
-| Load balancing | External LB setup (nginx, HAProxy) | Built-in Service load balancing |
-| Service discovery | Manual IP management, DNS config | Automatic K8s DNS |
-| Scaling | Manual server provisioning | `kubectl scale` or HPA |
-| Health monitoring | Custom scripts, cron jobs | Liveness/Readiness probes |
-| Configuration | Environment files on servers | ConfigMaps and Secrets |
-| Storage | Manual volume management | PersistentVolumeClaims |
-| Networking | Complex iptables, routing | Network Policies, Ingress |
+| Responsibility             | Before K8s (Manual)                | With Kubernetes                 |
+| -------------------------- | ---------------------------------- | ------------------------------- |
+| Container restart on crash | Manual monitoring, restart scripts | Automatic via ReplicaSets       |
+| Load balancing             | External LB setup (nginx, HAProxy) | Built-in Service load balancing |
+| Service discovery          | Manual IP management, DNS config   | Automatic K8s DNS               |
+| Scaling                    | Manual server provisioning         | `kubectl scale` or HPA          |
+| Health monitoring          | Custom scripts, cron jobs          | Liveness/Readiness probes       |
+| Configuration              | Environment files on servers       | ConfigMaps and Secrets          |
+| Storage                    | Manual volume management           | PersistentVolumeClaims          |
+| Networking                 | Complex iptables, routing          | Network Policies, Ingress       |
 
 ## Architecture
 
@@ -75,7 +75,13 @@ kubernetes/
 ├── 08-frontend-deployment.yaml        # Next.js frontend deployment
 ├── 09-frontend-service.yaml           # Frontend service
 ├── 10-ingress.yaml                    # External access configuration
+├── 12-backend-hpa.yaml                # Horizontal Pod Autoscaler configurations
 ├── HEALTH_CHECKS_DEMO.md              # Liveness/readiness behavior demo guide
+├── SCALING_GUIDE.md                   # Comprehensive scaling guide (manual + HPA)
+├── scaling-demo.ps1                   # Manual scaling demo (Windows)
+├── scaling-demo.sh                    # Manual scaling demo (Linux/Mac)
+├── hpa-load-test.ps1                  # HPA load test & verification (Windows)
+├── hpa-load-test.sh                   # HPA load test & verification (Linux/Mac)
 ├── cloud-native-architecture.md       # Detailed architecture document
 └── deployment-strategy.md             # Deployment and rollback strategies
 ```
@@ -83,6 +89,7 @@ kubernetes/
 ## Quick Start
 
 ### Prerequisites
+
 - Kubernetes cluster (minikube, kind, or cloud provider)
 - kubectl configured
 - Docker images built and pushed to registry
@@ -92,6 +99,7 @@ kubernetes/
 This project includes a local `kind` workflow for Sprint #3 experimentation.
 
 ### Prerequisites
+
 - Docker
 - kind
 - kubectl
@@ -103,6 +111,7 @@ bash devops/kubernetes/setup-kind.sh
 ```
 
 The script will:
+
 1. Create a local cluster named `feastflow-local`
 2. Build local images used by manifests (`feastflow-backend:latest`, `feastflow-frontend:latest`)
 3. Load images into the kind cluster
@@ -122,6 +131,7 @@ kubectl get services -n feastflow
 ### Why This Local Cluster Matters
 
 Using a local cluster validates Kubernetes workflows before cloud deployment:
+
 - confirms manifests are deployable
 - confirms `kubectl` connectivity and troubleshooting flow
 - supports safe testing of rollout/rollback behavior in development
@@ -155,18 +165,23 @@ kubectl port-forward -n feastflow service/feastflow-backend 5000:5000
 ## Key Concepts Demonstrated
 
 ### 1. Declarative Configuration
+
 All infrastructure defined as code in YAML manifests
 
 ### 2. Service Discovery
+
 Services communicate via K8s DNS:
+
 - `postgres.feastflow.svc.cluster.local:5432`
 - `feastflow-backend.feastflow.svc.cluster.local:5000`
 
 ### 3. Health Checks
+
 - **Liveness Probes**: Restart unhealthy containers
 - **Readiness Probes**: Remove from load balancer when not ready
 
 ### 4. Resource Management
+
 ```yaml
 resources:
   requests:
@@ -178,22 +193,59 @@ resources:
 ```
 
 ### 5. Configuration Separation
+
 - Application code in containers
 - Configuration in ConfigMaps
 - Secrets in Secrets (base64 encoded, can use sealed-secrets)
 
 ### 6. Scaling Strategy
+
+#### Manual Scaling
+
 ```bash
-# Manual scaling
+# Scale to specific replica count
 kubectl scale deployment feastflow-backend --replicas=5 -n feastflow
 
-# Horizontal Pod Autoscaler (HPA)
-kubectl autoscale deployment feastflow-backend \
-  --cpu-percent=70 \
-  --min=2 \
-  --max=10 \
-  -n feastflow
+# Run interactive manual scaling demo
+# Windows:
+./scaling-demo.ps1
+
+# Linux/Mac:
+./scaling-demo.sh
 ```
+
+#### Horizontal Pod Autoscaler (HPA)
+
+```bash
+# Apply HPA configurations (CPU and memory-based)
+kubectl apply -f 12-backend-hpa.yaml
+
+# View HPA status
+kubectl get hpa -n feastflow
+
+# Run automated load test to trigger HPA
+# Windows:
+./hpa-load-test.ps1 -Duration 180 -Concurrent 10
+
+# Linux/Mac:
+./hpa-load-test.sh --duration 180 --concurrent 10
+```
+
+**HPA Configuration**:
+
+- **Backend**: 2-10 replicas, scales at 70% CPU / 80% memory
+- **Frontend**: 2-8 replicas, scales at 60% CPU
+- **Scale-up**: Fast (0s stabilization window)
+- **Scale-down**: Conservative (5-min stabilization window)
+
+📖 **Complete Guide**: See [SCALING_GUIDE.md](SCALING_GUIDE.md) for:
+
+- Prerequisites and setup
+- Manual scaling methods and demos
+- HPA configuration details
+- Load testing and verification
+- Troubleshooting common issues
+- Real-world scenarios and best practices
 
 ### 7. Resource Requests and Limits Verification
 
@@ -238,16 +290,17 @@ kubectl top nodes
 
 ## Next Steps
 
-1. Implement Horizontal Pod Autoscaler (HPA)
+1. ✅ ~~Implement Horizontal Pod Autoscaler (HPA)~~ - **Completed! See [SCALING_GUIDE.md](SCALING_GUIDE.md)**
 2. Add Prometheus/Grafana for metrics
 3. Configure centralized logging (EFK stack)
 4. Implement Network Policies for security
 5. Add helm charts for easier deployment
 6. CI/CD pipeline integration with kubectl/helm
+7. Implement Cluster Autoscaler for node-level scaling
+8. Add custom metrics for HPA (request rate, queue length)
 
 ## References
 
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [12-Factor App Methodology](https://12factor.net/)
 - [Cloud Native Computing Foundation](https://www.cncf.io/)
-
