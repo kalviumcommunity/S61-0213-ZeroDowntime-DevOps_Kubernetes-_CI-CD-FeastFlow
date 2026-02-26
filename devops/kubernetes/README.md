@@ -75,6 +75,7 @@ kubernetes/
 ├── 08-frontend-deployment.yaml        # Next.js frontend deployment
 ├── 09-frontend-service.yaml           # Frontend service
 ├── 10-ingress.yaml                    # External access configuration
+├── HEALTH_CHECKS_DEMO.md              # Liveness/readiness behavior demo guide
 ├── cloud-native-architecture.md       # Detailed architecture document
 └── deployment-strategy.md             # Deployment and rollback strategies
 ```
