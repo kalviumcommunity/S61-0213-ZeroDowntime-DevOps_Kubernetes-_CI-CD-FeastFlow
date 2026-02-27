@@ -114,6 +114,42 @@ kubectl get events -n feastflow --field-selector involvedObject.name=feastflow-b
 
 ---
 
+## 2. Deploy FeastFlow with Helm
+
+This project now includes a custom Helm chart for easy deployment and configuration.
+
+### Prerequisites
+
+- [Helm](https://helm.sh/) installed
+- Local Kubernetes cluster running
+
+### Install the Helm Chart
+
+```sh
+cd devops/helm-chart
+helm install feastflow-app .
+```
+
+To override default values (image, replicas, ports, etc):
+
+```sh
+helm install feastflow-app . \
+  --set image.repository=myrepo/backend \
+  --set image.tag=latest \
+  --set replicaCount=3
+```
+
+### Upgrade or Uninstall
+
+```sh
+helm upgrade feastflow-app .
+helm uninstall feastflow-app
+```
+
+See `devops/helm-chart/README.md` for more details.
+
+---
+
 ## Quick Reference Commands
 
 ### Manual Scaling
