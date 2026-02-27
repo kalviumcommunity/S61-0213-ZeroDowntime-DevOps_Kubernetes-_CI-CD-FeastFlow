@@ -1,0 +1,5 @@
+apiVersion: v2
+name: feastflow-app
+version: 0.1.0
+description: A Helm chart for FeastFlow application
+appVersion: "1.0.0"
