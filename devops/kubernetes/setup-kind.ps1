@@ -21,6 +21,16 @@ if (!(Get-Command docker -ErrorAction SilentlyContinue)) {
 }
 
 if (!(Get-Command kind -ErrorAction SilentlyContinue)) {
+    $userKindDir = Join-Path $env:USERPROFILE "bin"
+    $userKindPath = Join-Path $userKindDir "kind.exe"
+    if (Test-Path $userKindPath) {
+        if ($env:Path -notlike "*$userKindDir*") {
+            $env:Path = "$env:Path;$userKindDir"
+        }
+    }
+}
+
+if (!(Get-Command kind -ErrorAction SilentlyContinue)) {
     Write-Host " kind is required but not installed." -ForegroundColor Red
     exit 1
 }
@@ -35,7 +45,12 @@ Write-Host ""
 
 # Check if cluster exists
 Write-Host " Checking cluster '$CLUSTER_NAME'..." -ForegroundColor Yellow
-$existingClusters = kind get clusters 2>&1
+$existingClusters = @()
+try {
+    $existingClusters = kind get clusters 2>$null
+} catch {
+    $existingClusters = @()
+}
 if ($existingClusters -match $CLUSTER_NAME) {
     Write-Host " kind cluster '$CLUSTER_NAME' already exists" -ForegroundColor Green
 } else {
