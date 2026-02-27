@@ -234,6 +234,46 @@ All components have been tested and verified to:
 
 ---
 
+### 8.2 Kubernetes Rolling Update and Rollback Demonstration (February 2026)
+
+**Contribution**: Automated rollout and rollback demonstration for Sprint #3 zero-downtime release validation.
+
+**Purpose**: Prove end-to-end operational handling of Deployment changes in Kubernetes, including a successful rolling update, failed update simulation, and rollback to a known-good revision.
+
+**Components Delivered**:
+
+1. **Cross-platform rollout demo automation**
+   - PowerShell script: `devops/kubernetes/rollout-demo.ps1`
+   - Bash script: `devops/kubernetes/rollout-demo.sh`
+   - Uses existing Deployment (`feastflow-backend`) and performs real rollout operations
+
+2. **Successful update workflow**
+   - Triggers a new Deployment revision by updating environment variable `DEMO_RELEASE`
+   - Annotates `kubernetes.io/change-cause` for revision traceability
+   - Waits for rollout completion and verifies Deployment/Pods/ReplicaSets
+
+3. **Controlled failed update simulation**
+   - Updates image to intentionally invalid tag (`feastflow-backend:rollback-demo-bad`)
+   - Confirms rollout timeout/failure signals
+   - Captures pod and recent event diagnostics
+
+4. **Rollback workflow**
+   - Executes `kubectl rollout undo`
+   - Verifies the Deployment returns to stable availability
+   - Prints final rollout history for revision proof
+
+5. **Documentation integration**
+   - Added script usage in `devops/kubernetes/README.md`
+   - Added automated path in `devops/kubernetes/ROLLOUT_DEMO_GUIDE.md`
+
+**Impact**:
+
+- Demonstrates zero-downtime deployment behavior using Kubernetes rolling strategy
+- Demonstrates rapid recovery path when release is faulty
+- Produces reproducible evidence for Sprint #3 evaluation criteria
+
+---
+
 9. Conclusion
 
 This repository demonstrates structured version control practices aligned with real-world engineering standards.

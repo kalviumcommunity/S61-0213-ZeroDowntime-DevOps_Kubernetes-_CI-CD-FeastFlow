@@ -76,6 +76,8 @@ kubernetes/
 ├── 09-frontend-service.yaml           # Frontend service
 ├── 10-ingress.yaml                    # External access configuration
 ├── 12-backend-hpa.yaml                # Horizontal Pod Autoscaler configurations
+├── rollout-demo.ps1                   # Rolling update + rollback demo (Windows)
+├── rollout-demo.sh                    # Rolling update + rollback demo (Linux/Mac)
 ├── HEALTH_CHECKS_DEMO.md              # Liveness/readiness behavior demo guide
 ├── SCALING_GUIDE.md                   # Comprehensive scaling guide (manual + HPA)
 ├── scaling-demo.ps1                   # Manual scaling demo (Windows)
@@ -260,6 +262,28 @@ bash devops/kubernetes/verify-resource-management.sh
 ```
 
 See `devops/kubernetes/RESOURCE_MANAGEMENT_DEMO.md` for the full Sprint #3 demonstration checklist.
+
+### 8. Rolling Updates and Rollbacks Verification
+
+Use the rollout demo scripts to produce a full Sprint #3 proof flow:
+
+1. successful rolling update (new Deployment revision)
+2. failed rollout simulation
+3. rollback to last stable revision
+
+```powershell
+.\devops\kubernetes\rollout-demo.ps1
+```
+
+```bash
+bash devops/kubernetes/rollout-demo.sh
+```
+
+Optional mode to run only the successful update path:
+
+```powershell
+.\devops\kubernetes\rollout-demo.ps1 -SkipFailedUpdate
+```
 
 ## Cloud-Native Principles Applied
 
