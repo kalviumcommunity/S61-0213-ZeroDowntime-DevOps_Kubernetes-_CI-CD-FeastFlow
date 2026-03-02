@@ -71,6 +71,31 @@ kubectl config use-context "kind-$CLUSTER_NAME" | Out-Null
 Write-Host " Context set to kind-$CLUSTER_NAME" -ForegroundColor Green
 Write-Host ""
 
+# Wait until Kubernetes API is reachable
+Write-Host " Waiting for Kubernetes API server..." -ForegroundColor Yellow
+$apiReady = $false
+for ($i = 1; $i -le 30; $i++) {
+    try {
+        kubectl cluster-info --request-timeout=5s *> $null
+        if ($LASTEXITCODE -eq 0) {
+            $apiReady = $true
+            break
+        }
+    } catch {
+        # API may not be reachable yet while control-plane is starting.
+    }
+    Start-Sleep -Seconds 2
+}
+
+if (-not $apiReady) {
+    Write-Host " Kubernetes API did not become reachable in time" -ForegroundColor Red
+    Write-Host " Try: docker ps --filter name=feastflow-local-control-plane" -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host " Kubernetes API is reachable" -ForegroundColor Green
+Write-Host ""
+
 # Build backend image
 Write-Host " Building backend image..." -ForegroundColor Yellow
 docker build -t feastflow-backend:latest $BACKEND_DIR

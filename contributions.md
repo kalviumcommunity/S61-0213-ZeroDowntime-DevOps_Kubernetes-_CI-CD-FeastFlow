@@ -232,7 +232,7 @@ All components have been tested and verified to:
 - Vertical Pod Autoscaler (VPA) for resource right-sizing
 - Predictive autoscaling based on historical patterns
 
----
+---.............................................................................................................................
 
 ### 8.2 Kubernetes Rolling Update and Rollback Demonstration (February 2026)
 
@@ -274,10 +274,47 @@ All components have been tested and verified to:
 
 ---
 
+### 8.3 Stateful Persistence Demonstration Using PVC (March 2026)
+
+**Contribution**: End-to-end Kubernetes persistent storage proof for Sprint #3 stateful components requirement.
+
+**Purpose**: Demonstrate that application data written to disk survives pod restarts by using a mounted PersistentVolumeClaim (PVC), not ephemeral container storage.
+
+**Components Delivered**:
+
+1. **Stateful demo workload and storage manifest**
+   - `devops/kubernetes/13-persistence-demo.yaml`
+   - Defines `persistence-demo-pvc` (1Gi, `ReadWriteOnce`)
+   - Deploys `feastflow-persistence-demo` pod that mounts PVC at `/data`
+
+2. **Automated persistence verification scripts**
+   - PowerShell: `devops/kubernetes/verify-persistence.ps1`
+   - Bash: `devops/kubernetes/verify-persistence.sh`
+   - Workflow:
+     - apply manifests
+     - wait for PVC `Bound`
+     - write marker to `/data/proof.txt`
+     - delete pod (simulate restart)
+     - verify marker remains in recreated pod
+
+3. **Documentation and quick-start integration**
+   - `devops/kubernetes/PERSISTENCE_DEMO.md`
+   - Updated `devops/kubernetes/README.md` and `devops/kubernetes/QUICKSTART.md`
+   - Added explicit commands for both Windows and Linux/Mac verification flows
+
+**Impact**:
+
+- Validates understanding that pods are ephemeral by default
+- Proves PVC-backed storage persists beyond pod lifecycle
+- Provides reproducible, reviewer-friendly evidence for Sprint #3 rubric
+- Adds cross-platform operational scripts aligned with existing repo standards
+
+---
+
 9. Conclusion
 
 This repository demonstrates structured version control practices aligned with real-world engineering standards.
 
 Through disciplined branching, meaningful commit conventions, and organized repository design, the project ensures clarity, maintainability, and collaboration readiness.
 
-The recent Kubernetes scaling implementation showcases practical DevOps capabilities in container orchestration, demonstrating both theoretical knowledge and hands-on implementation skills in production-ready infrastructure automation.
+The recent Kubernetes scaling, rollout safety, and persistent storage implementations showcase practical DevOps capabilities in container orchestration, demonstrating both theoretical knowledge and hands-on implementation skills in production-ready infrastructure automation.
