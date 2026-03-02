@@ -109,11 +109,7 @@ kubectl describe hpa feastflow-backend-hpa -n feastflow
 kubectl top pods -n feastflow -l component=backend
 
 # View scaling events
-kubectl get events -n feastflow --field-selector involvedObject.name=feastflow-backend-hpa
-```
-
----
-
+kubectl get events -n feastflow --field-selector involvedObject.name=feastflow-backend-hvolumes-PVCs
 ## 4. Persistent Storage Demo (PVC + Pod Restart)
 
 ### Windows (PowerShell)
@@ -135,6 +131,68 @@ chmod +x verify-persistence.sh
 - Data is written to `/data/proof.txt`
 - Pod is deleted and recreated by Deployment controller
 - Same data is read back after restart (persistence proof)
+
+## 2. Deploy FeastFlow with Helm
+
+This project now includes a custom Helm chart for easy deployment and configuration.
+
+### Prerequisites
+
+- [Helm](https://helm.sh/) installed
+- Local Kubernetes cluster running
+
+### Install the Helm Chart
+
+```sh
+cd devops/helm-chart
+helm install feastflow-app .
+```
+
+To override default values (image, replicas, ports, etc):
+
+```sh
+helm install feastflow-app . \
+  --set image.repository=myrepo/backend \
+  --set image.tag=latest \
+  --set replicaCount=3
+```
+
+### Upgrade or Uninstall
+
+```sh
+helm upgrade feastflow-app .
+helm uninstall feastflow-app
+```
+
+See `devops/helm-chart/README.md` for more details.
+
+---
+
+## Helm Chart Deployment for Multiple Environments
+
+You can deploy FeastFlow using the custom Helm chart for different environments (development, production) with separate values files.
+
+### 1. Development Environment
+
+```bash
+helm upgrade --install feastflow-app ./helm-chart \
+  --namespace feastflow --create-namespace \
+  -f ./helm-chart/values-dev.yaml
+```
+
+### 2. Production Environment
+
+```bash
+helm upgrade --install feastflow-app ./helm-chart \
+  --namespace feastflow --create-namespace \
+  -f ./helm-chart/values-prod.yaml
+```
+
+#### Key Differences
+
+- Replica count, image tag, resource limits, feature flags, and environment variables are set per environment in the values files.
+- The same chart is used for both environments, only the values file changes.
+main
 
 ---
 

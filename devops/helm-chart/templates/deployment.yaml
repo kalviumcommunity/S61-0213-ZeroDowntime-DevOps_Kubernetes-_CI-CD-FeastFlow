@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: { { include "feastflow-app.fullname" . } }
+  labels:
+    app: { { include "feastflow-app.name" . } }
+spec:
+  replicas: { { .Values.replicaCount } }
+  selector:
+    matchLabels:
+      app: { { include "feastflow-app.name" . } }
+  template:
+    metadata:
+      labels:
+        app: { { include "feastflow-app.name" . } }
+    spec:
+      containers:
+        - name: { { include "feastflow-app.name" . } }
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: { { .Values.image.pullPolicy } }
+          ports:
+            - containerPort: { { .Values.containerPort } }
+          resources: { { - toYaml .Values.resources | nindent 12 } }
