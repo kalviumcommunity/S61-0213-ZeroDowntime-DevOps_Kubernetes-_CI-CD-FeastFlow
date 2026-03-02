@@ -1,0 +1,16 @@
+# Production environment values
+replicaCount: 3
+image:
+  tag: "prod-2026-03-02"
+resources:
+  limits:
+    cpu: "1000m"
+    memory: "1024Mi"
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+featureFlags:
+  enableDebug: false
+env:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
