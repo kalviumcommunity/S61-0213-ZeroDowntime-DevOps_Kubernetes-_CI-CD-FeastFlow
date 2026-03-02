@@ -303,6 +303,38 @@ bash devops/kubernetes/verify-persistence.sh
 
 📖 Full walkthrough: `devops/kubernetes/PERSISTENCE_DEMO.md`
 
+### 10. External Traffic Routing with Ingress
+
+This project uses **Ingress + Services** for external traffic entry instead of exposing each application Pod directly.
+
+#### Why Services Alone Are Not Enough for Real-World External Access
+
+- `ClusterIP` Services are internal-only (reachable inside the cluster)
+- `NodePort` can expose apps, but it is coarse-grained and not ideal for production URL routing
+- Services do not provide Layer-7 routing rules like host/path-based traffic splitting
+- Ingress provides a single HTTP/HTTPS entry point and routes traffic to the correct Service
+
+#### Request Flow (Internet → Pod)
+
+1. **Client request** reaches the **Ingress Controller** (for example nginx ingress)
+2. Controller reads routing rules from the **Ingress resource** (`10-ingress.yaml`)
+3. Matching rule forwards traffic to the target **Service** (`feastflow-frontend` or `feastflow-backend`)
+4. Service load-balances to a healthy **Pod endpoint** selected by labels
+
+Flow summary:
+
+`Internet client → Ingress Controller → Ingress rules → Service → Pod`
+
+#### Host and Path Rules in This Project
+
+Defined in `10-ingress.yaml`:
+
+- Host: `feastflow.local`
+- Path `/` routes to frontend service on port `3000`
+- Path `/api` routes to backend service on port `5000`
+
+This gives a clean single-domain experience while keeping internal service networking private and Kubernetes-native.
+
 ## Cloud-Native Principles Applied
 
 1. **Containerized**: All services run in containers
