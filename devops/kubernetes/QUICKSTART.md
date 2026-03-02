@@ -150,6 +150,33 @@ See `devops/helm-chart/README.md` for more details.
 
 ---
 
+## Helm Chart Deployment for Multiple Environments
+
+You can deploy FeastFlow using the custom Helm chart for different environments (development, production) with separate values files.
+
+### 1. Development Environment
+
+```bash
+helm upgrade --install feastflow-app ./helm-chart \
+  --namespace feastflow --create-namespace \
+  -f ./helm-chart/values-dev.yaml
+```
+
+### 2. Production Environment
+
+```bash
+helm upgrade --install feastflow-app ./helm-chart \
+  --namespace feastflow --create-namespace \
+  -f ./helm-chart/values-prod.yaml
+```
+
+#### Key Differences
+
+- Replica count, image tag, resource limits, feature flags, and environment variables are set per environment in the values files.
+- The same chart is used for both environments, only the values file changes.
+
+---
+
 ## Quick Reference Commands
 
 ### Manual Scaling

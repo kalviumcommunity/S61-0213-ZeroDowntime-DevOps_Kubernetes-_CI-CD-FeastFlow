@@ -20,3 +20,13 @@ spec:
           imagePullPolicy: { { .Values.image.pullPolicy } }
           ports:
             - containerPort: { { .Values.containerPort } }
+            env:
+              {{- range $key, $value := .Values.env }}
+              - name: {{ $key }}
+                value: "{{ $value }}"
+              {{- end }}
+            # Feature flags as environment variables
+              {{- range $key, $value := .Values.featureFlags }}
+              - name: {{ $key }}
+                value: "{{ $value }}"
+              {{- end }}
