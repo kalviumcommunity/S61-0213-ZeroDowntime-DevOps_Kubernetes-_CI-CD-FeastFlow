@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: persistence-demo-pvc
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: persistence-demo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feastflow-persistence-demo
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: persistence-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: feastflow
+      component: persistence-demo
+  template:
+    metadata:
+      labels:
+        app: feastflow
+        component: persistence-demo
+    spec:
+      containers:
+        - name: persistence-demo
+          image: busybox:1.36
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              mkdir -p /data
+              echo "container_started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /data/startup.log
+              touch /data/proof.txt
+              tail -f /dev/null
+          volumeMounts:
+            - name: persistence-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+      volumes:
+        - name: persistence-data
+          persistentVolumeClaim:
+            claimName: persistence-demo-pvc

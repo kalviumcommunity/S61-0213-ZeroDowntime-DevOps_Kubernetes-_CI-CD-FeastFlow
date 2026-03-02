@@ -1,6 +1,6 @@
-# Quick Start: Scaling Demonstrations
+# Quick Start: Kubernetes Demonstrations
 
-This guide provides quick commands to run the scaling demonstrations.
+This guide provides quick commands to run scaling and persistence demonstrations.
 
 ## Prerequisites
 
@@ -109,10 +109,28 @@ kubectl describe hpa feastflow-backend-hpa -n feastflow
 kubectl top pods -n feastflow -l component=backend
 
 # View scaling events
-kubectl get events -n feastflow --field-selector involvedObject.name=feastflow-backend-hpa
+kubectl get events -n feastflow --field-selector involvedObject.name=feastflow-backend-hvolumes-PVCs
+## 4. Persistent Storage Demo (PVC + Pod Restart)
+
+### Windows (PowerShell)
+
+```powershell
+.\verify-persistence.ps1
 ```
 
----
+### Linux/Mac (Bash)
+
+```bash
+chmod +x verify-persistence.sh
+./verify-persistence.sh
+```
+
+**What it shows**:
+
+- PVC is bound and mounted into a running pod
+- Data is written to `/data/proof.txt`
+- Pod is deleted and recreated by Deployment controller
+- Same data is read back after restart (persistence proof)
 
 ## 2. Deploy FeastFlow with Helm
 
@@ -174,6 +192,7 @@ helm upgrade --install feastflow-app ./helm-chart \
 
 - Replica count, image tag, resource limits, feature flags, and environment variables are set per environment in the values files.
 - The same chart is used for both environments, only the values file changes.
+main
 
 ---
 
@@ -222,6 +241,14 @@ kubectl top nodes
 kubectl top pods -n feastflow
 ```
 
+### Persistence Checks
+
+```bash
+kubectl get pvc -n feastflow
+kubectl get pods -n feastflow -l component=persistence-demo
+kubectl logs -n feastflow deployment/feastflow-persistence-demo
+```
+
 ---
 
 ## Expected Results
@@ -241,6 +268,13 @@ kubectl top pods -n feastflow
 - ✅ CPU usage stabilizes below threshold
 - ✅ After load stops, gradual scale-down (5-min window)
 
+### Persistent Storage Demo
+
+- ✅ PVC reaches Bound state
+- ✅ Marker data is written to mounted volume
+- ✅ Pod replacement occurs successfully
+- ✅ Marker data survives pod restart
+
 ---
 
 ## Full Documentation
@@ -253,6 +287,8 @@ kubectl top pods -n feastflow
 - Real-world scenarios
 - Best practices
 
+📖 **Persistence Guide**: [PERSISTENCE_DEMO.md](PERSISTENCE_DEMO.md)
+
 ---
 
 ## File Reference
@@ -264,9 +300,13 @@ kubectl top pods -n feastflow
 | `scaling-demo.sh`     | Manual scaling demo (Linux/Mac)            |
 | `hpa-load-test.ps1`   | HPA load test script (Windows)             |
 | `hpa-load-test.sh`    | HPA load test script (Linux/Mac)           |
+| `13-persistence-demo.yaml` | PVC + persistence demo workload      |
+| `verify-persistence.ps1` | Persistence verification (Windows)       |
+| `verify-persistence.sh` | Persistence verification (Linux/Mac)     |
+| `PERSISTENCE_DEMO.md` | Persistence walkthrough and proof steps    |
 | `SCALING_GUIDE.md`    | Complete documentation                     |
 | `QUICKSTART.md`       | This file                                  |
 
 ---
 
-**Ready to scale? Start with the manual demo, then move to HPA! 🚀**
+**Start with manual scaling, then run HPA and persistence verification for full Sprint #3 coverage. 🚀**

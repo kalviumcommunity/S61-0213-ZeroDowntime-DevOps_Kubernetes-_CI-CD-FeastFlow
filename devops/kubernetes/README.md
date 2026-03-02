@@ -76,14 +76,18 @@ kubernetes/
 ├── 09-frontend-service.yaml           # Frontend service
 ├── 10-ingress.yaml                    # External access configuration
 ├── 12-backend-hpa.yaml                # Horizontal Pod Autoscaler configurations
+├── 13-persistence-demo.yaml            # PVC + pod-mounted persistence demo workload
 ├── rollout-demo.ps1                   # Rolling update + rollback demo (Windows)
 ├── rollout-demo.sh                    # Rolling update + rollback demo (Linux/Mac)
 ├── HEALTH_CHECKS_DEMO.md              # Liveness/readiness behavior demo guide
 ├── SCALING_GUIDE.md                   # Comprehensive scaling guide (manual + HPA)
+├── PERSISTENCE_DEMO.md                # Persistent storage verification guide
 ├── scaling-demo.ps1                   # Manual scaling demo (Windows)
 ├── scaling-demo.sh                    # Manual scaling demo (Linux/Mac)
 ├── hpa-load-test.ps1                  # HPA load test & verification (Windows)
 ├── hpa-load-test.sh                   # HPA load test & verification (Linux/Mac)
+├── verify-persistence.ps1             # PVC persistence proof script (Windows)
+├── verify-persistence.sh              # PVC persistence proof script (Linux/Mac)
 ├── cloud-native-architecture.md       # Detailed architecture document
 └── deployment-strategy.md             # Deployment and rollback strategies
 ```
@@ -285,6 +289,20 @@ Optional mode to run only the successful update path:
 .\devops\kubernetes\rollout-demo.ps1 -SkipFailedUpdate
 ```
 
+### 9. Persistent Storage Verification (PVC)
+
+Use the persistence verification scripts to prove that data written inside a pod-mounted volume survives pod replacement.
+
+```powershell
+.\devops\kubernetes\verify-persistence.ps1
+```
+
+```bash
+bash devops/kubernetes/verify-persistence.sh
+```
+
+📖 Full walkthrough: `devops/kubernetes/PERSISTENCE_DEMO.md`
+
 ## Cloud-Native Principles Applied
 
 1. **Containerized**: All services run in containers
@@ -315,13 +333,14 @@ kubectl top nodes
 ## Next Steps
 
 1. ✅ ~~Implement Horizontal Pod Autoscaler (HPA)~~ - **Completed! See [SCALING_GUIDE.md](SCALING_GUIDE.md)**
-2. Add Prometheus/Grafana for metrics
-3. Configure centralized logging (EFK stack)
-4. Implement Network Policies for security
-5. Add helm charts for easier deployment
-6. CI/CD pipeline integration with kubectl/helm
-7. Implement Cluster Autoscaler for node-level scaling
-8. Add custom metrics for HPA (request rate, queue length)
+2. ✅ ~~Implement persistent storage verification (PVC + restart proof)~~ - **Completed! See [PERSISTENCE_DEMO.md](PERSISTENCE_DEMO.md)**
+3. Add Prometheus/Grafana for metrics
+4. Configure centralized logging (EFK stack)
+5. Implement Network Policies for security
+6. Add helm charts for easier deployment
+7. CI/CD pipeline integration with kubectl/helm
+8. Implement Cluster Autoscaler for node-level scaling
+9. Add custom metrics for HPA (request rate, queue length)
 
 ## References
 
