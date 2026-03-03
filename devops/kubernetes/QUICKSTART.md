@@ -12,6 +12,35 @@ kubectl cluster-info
 kubectl get deployments -n feastflow
 ```
 
+## 0. Ingress Routing Verification (NGINX Controller)
+
+Make sure cluster setup includes ingress controller installation:
+
+```powershell
+.\devops\kubernetes\setup-kind.ps1
+```
+
+```bash
+bash devops/kubernetes/setup-kind.sh
+```
+
+Then verify that HTTP traffic is routed by ingress:
+
+```powershell
+.\devops\kubernetes\verify-ingress.ps1
+```
+
+```bash
+bash devops/kubernetes/verify-ingress.sh
+```
+
+What this proves:
+
+- `Ingress` resource is present (`feastflow-ingress`)
+- `ingress-nginx` controller is running
+- `Host: feastflow.local` + path `/` reaches frontend service
+- `Host: feastflow.local` + path `/api/health` reaches backend service
+
 ## 1. Manual Scaling Demo (5 minutes)
 
 ### Windows (PowerShell)
