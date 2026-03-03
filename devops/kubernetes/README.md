@@ -77,6 +77,7 @@ kubernetes/
 ├── 10-ingress.yaml                    # External access configuration
 ├── 12-backend-hpa.yaml                # Horizontal Pod Autoscaler configurations
 ├── 13-persistence-demo.yaml            # PVC + pod-mounted persistence demo workload
+├── 14-rbac-basics.yaml                 # Least-privilege RBAC (Role + RoleBinding)
 ├── rollout-demo.ps1                   # Rolling update + rollback demo (Windows)
 ├── rollout-demo.sh                    # Rolling update + rollback demo (Linux/Mac)
 ├── HEALTH_CHECKS_DEMO.md              # Liveness/readiness behavior demo guide
@@ -88,6 +89,8 @@ kubernetes/
 ├── hpa-load-test.sh                   # HPA load test & verification (Linux/Mac)
 ├── verify-persistence.ps1             # PVC persistence proof script (Windows)
 ├── verify-persistence.sh              # PVC persistence proof script (Linux/Mac)
+├── verify-rbac.ps1                    # RBAC allow/deny proof script (Windows)
+├── verify-rbac.sh                     # RBAC allow/deny proof script (Linux/Mac)
 ├── verify-ingress.ps1                 # Ingress controller + HTTP routing verification (Windows)
 ├── verify-ingress.sh                  # Ingress controller + HTTP routing verification (Linux/Mac)
 ├── cloud-native-architecture.md       # Detailed architecture document
@@ -360,6 +363,48 @@ For kind, this repository installs the controller automatically in:
 - `setup-kind.sh`
 
 This gives a clean single-domain experience while keeping internal service networking private and Kubernetes-native.
+
+### 11. Securing Cluster Access with RBAC Basics
+
+This repository demonstrates least-privilege access by binding a namespace-scoped read-only `Role` to a dedicated `ServiceAccount`.
+
+Resources:
+
+- `14-rbac-basics.yaml`
+  - `ServiceAccount`: `feastflow-readonly-sa`
+  - `Role`: `feastflow-readonly-role`
+  - `RoleBinding`: `feastflow-readonly-binding`
+
+Allowed actions in `feastflow` namespace:
+
+- `get`, `list`, `watch` on `pods`, `services`, `deployments`
+
+Denied actions (intentionally excluded):
+
+- mutating verbs like `create`, `update`, `patch`, `delete`
+- sensitive resources like `secrets`
+
+Verification scripts:
+
+```powershell
+.\devops\kubernetes\verify-rbac.ps1
+```
+
+```bash
+bash devops/kubernetes/verify-rbac.sh
+```
+
+Expected proof outcomes:
+
+1. Allowed read actions return `yes` (`kubectl auth can-i ...`)
+2. Disallowed mutating/sensitive actions return `no`
+3. Real command against restricted resource fails with `Forbidden`
+
+Why this access level is appropriate:
+
+- It supports day-to-day operational visibility (read-only monitoring)
+- It prevents accidental or unauthorized cluster changes
+- It limits blast radius in shared-team environments
 
 ## Cloud-Native Principles Applied
 
