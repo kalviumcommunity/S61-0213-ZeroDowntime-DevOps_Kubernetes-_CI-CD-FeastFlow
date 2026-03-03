@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: feastflow-readonly-sa
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: rbac
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: feastflow-readonly-role
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: rbac
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: feastflow-readonly-binding
+  namespace: feastflow
+  labels:
+    app: feastflow
+    component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: feastflow-readonly-sa
+    namespace: feastflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: feastflow-readonly-role

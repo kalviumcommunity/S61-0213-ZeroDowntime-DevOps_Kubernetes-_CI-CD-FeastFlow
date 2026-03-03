@@ -138,8 +138,34 @@ kubectl describe hpa feastflow-backend-hpa -n feastflow
 kubectl top pods -n feastflow -l component=backend
 
 # View scaling events
-kubectl get events -n feastflow --field-selector involvedObject.name=feastflow-backend-hvolumes-PVCs
-## 4. Persistent Storage Demo (PVC + Pod Restart)
+kubectl get events -n feastflow --field-selector involvedObject.name=feastflow-backend-hpa
+```
+
+## 4. RBAC Access Restriction Demo (Least Privilege)
+
+Apply RBAC resources:
+
+```bash
+kubectl apply -f devops/kubernetes/14-rbac-basics.yaml
+```
+
+Run verification:
+
+```powershell
+.\devops\kubernetes\verify-rbac.ps1
+```
+
+```bash
+bash devops/kubernetes/verify-rbac.sh
+```
+
+What it proves:
+
+- allowed read-only actions succeed (`get/list/watch` on pods/services/deployments)
+- disallowed actions are denied (`delete pods`, `create/get secrets`)
+- least privilege is enforced by `RoleBinding` on `feastflow-readonly-sa`
+
+## 5. Persistent Storage Demo (PVC + Pod Restart)
 
 ### Windows (PowerShell)
 
