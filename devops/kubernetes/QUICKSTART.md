@@ -229,25 +229,23 @@ You can deploy FeastFlow using the custom Helm chart for different environments 
 
 ### 1. Development Environment
 
-```bash
+````bash
 helm upgrade --install feastflow-app ./helm-chart \
   --namespace feastflow --create-namespace \
   -f ./helm-chart/values-dev.yaml
-```
-
 ### 2. Production Environment
 
 ```bash
 helm upgrade --install feastflow-app ./helm-chart \
   --namespace feastflow --create-namespace \
   -f ./helm-chart/values-prod.yaml
-```
+````
 
 #### Key Differences
 
 - Replica count, image tag, resource limits, feature flags, and environment variables are set per environment in the values files.
 - The same chart is used for both environments, only the values file changes.
-main
+  main
 
 ---
 
@@ -261,9 +259,33 @@ kubectl scale deployment feastflow-backend --replicas=5 -n feastflow
 
 # Check current replicas
 kubectl get deployment feastflow-backend -n feastflow
-
 # Watch pods
-kubectl get pods -n feastflow -l component=backend --watch
+## CI/CD Pipeline Stages & Workflow Mapping
+
+This section documents the CI/CD pipeline stages for Feast Flow, clearly separating CI and CD, and mapping them to the project workflow.
+
+## Continuous Integration (CI) Stages
+1. **Source Code Checkout** – Pull code from GitHub on PR or push.
+2. **Dependency Installation** – Prepare environment for build/test.
+3. **Automated Testing** – Run unit/integration tests; fail fast if broken.
+4. **Static Analysis** – (Optional) Linting, code quality checks.
+5. **Docker Image Build** – Build container image from tested code.
+6. **Image Tag & Push** – Tag and push image to registry (Docker Hub/GHCR).
+
+## Continuous Deployment (CD) Stages
+1. **Deployment Trigger** – After successful CI, CD pipeline starts.
+2. **Cluster Authentication** – Authenticate to Kubernetes.
+3. **Manifest Update** – Update deployment manifests with new image tag.
+4. **Apply Manifests** – Deploy updated resources to cluster.
+5. **Rolling Update** – Kubernetes replaces old pods with new ones, zero downtime.
+6. **Health Checks & Rollback** – Liveness/readiness probes, rollback on failure.
+
+## Mapping to Project Workflow
+- Developer pushes code → CI pipeline validates, builds, and pushes image.
+- CD pipeline deploys validated image to Kubernetes using Helm and manifests.
+- Kubernetes orchestrates rolling updates, scaling, and persistence.
+- All steps are automated via GitHub Actions and Helm charts.
+
 ```
 
 ### HPA Management
@@ -286,11 +308,8 @@ kubectl edit hpa feastflow-backend-hpa -n feastflow
 
 ```bash
 # Check if metrics-server is running
-kubectl get deployment metrics-server -n kube-system
-
 # View metrics-server logs
 kubectl logs -n kube-system deployment/metrics-server
-
 # Test metrics availability
 kubectl top nodes
 kubectl top pods -n feastflow
@@ -310,31 +329,31 @@ kubectl logs -n feastflow deployment/feastflow-persistence-demo
 
 ### Manual Scaling Demo
 
-- ✅ Pods scale up/down instantly
-- ✅ No service disruption during scaling
-- ✅ Service automatically registers new pods
-- ✅ Old pods terminate gracefully
+- Pods scale up/down instantly
+- No service disruption during scaling
+- Service automatically registers new pods
+- Old pods terminate gracefully
 
 ### HPA Load Test
 
-- ✅ CPU usage increases to 70%+
-- ✅ HPA triggers scale-up (2 → 4 → 6 replicas)
-- ✅ New pods distribute the load
-- ✅ CPU usage stabilizes below threshold
-- ✅ After load stops, gradual scale-down (5-min window)
+- CPU usage increases to 70%+
+- HPA triggers scale-up (2 → 4 → 6 replicas)
+- New pods distribute the load
+- CPU usage stabilizes below threshold
+- After load stops, gradual scale-down (5-min window)
 
 ### Persistent Storage Demo
 
-- ✅ PVC reaches Bound state
-- ✅ Marker data is written to mounted volume
-- ✅ Pod replacement occurs successfully
-- ✅ Marker data survives pod restart
+- PVC reaches Bound state
+- Marker data is written to mounted volume
+- Pod replacement occurs successfully
+- Marker data survives pod restart
 
 ---
 
 ## Full Documentation
 
-📖 **Comprehensive Guide**: [SCALING_GUIDE.md](SCALING_GUIDE.md)
+**Comprehensive Guide**: [SCALING_GUIDE.md](SCALING_GUIDE.md)
 
 - Detailed explanations
 - Architecture diagrams
@@ -342,26 +361,26 @@ kubectl logs -n feastflow deployment/feastflow-persistence-demo
 - Real-world scenarios
 - Best practices
 
-📖 **Persistence Guide**: [PERSISTENCE_DEMO.md](PERSISTENCE_DEMO.md)
+  **Persistence Guide**: [PERSISTENCE_DEMO.md](PERSISTENCE_DEMO.md)
 
 ---
 
 ## File Reference
 
-| File                  | Purpose                                    |
-| --------------------- | ------------------------------------------ |
-| `12-backend-hpa.yaml` | HPA configuration for backend and frontend |
-| `scaling-demo.ps1`    | Manual scaling demo (Windows)              |
-| `scaling-demo.sh`     | Manual scaling demo (Linux/Mac)            |
-| `hpa-load-test.ps1`   | HPA load test script (Windows)             |
-| `hpa-load-test.sh`    | HPA load test script (Linux/Mac)           |
-| `13-persistence-demo.yaml` | PVC + persistence demo workload      |
-| `verify-persistence.ps1` | Persistence verification (Windows)       |
-| `verify-persistence.sh` | Persistence verification (Linux/Mac)     |
-| `PERSISTENCE_DEMO.md` | Persistence walkthrough and proof steps    |
-| `SCALING_GUIDE.md`    | Complete documentation                     |
-| `QUICKSTART.md`       | This file                                  |
+| File                       | Purpose                                    |
+| -------------------------- | ------------------------------------------ |
+| `12-backend-hpa.yaml`      | HPA configuration for backend and frontend |
+| `scaling-demo.ps1`         | Manual scaling demo (Windows)              |
+| `scaling-demo.sh`          | Manual scaling demo (Linux/Mac)            |
+| `hpa-load-test.ps1`        | HPA load test script (Windows)             |
+| `hpa-load-test.sh`         | HPA load test script (Linux/Mac)           |
+| `13-persistence-demo.yaml` | PVC + persistence demo workload            |
+| `verify-persistence.ps1`   | Persistence verification (Windows)         |
+| `verify-persistence.sh`    | Persistence verification (Linux/Mac)       |
+| `PERSISTENCE_DEMO.md`      | Persistence walkthrough and proof steps    |
+| `SCALING_GUIDE.md`         | Complete documentation                     |
+| `QUICKSTART.md`            | This file                                  |
 
 ---
 
-**Start with manual scaling, then run HPA and persistence verification for full Sprint #3 coverage. 🚀**
+**Start with manual scaling, then run HPA and persistence verification for full Sprint #3 coverage. **
