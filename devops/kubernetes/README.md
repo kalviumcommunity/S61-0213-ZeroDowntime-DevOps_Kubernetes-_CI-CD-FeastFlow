@@ -88,6 +88,8 @@ kubernetes/
 ├── hpa-load-test.sh                   # HPA load test & verification (Linux/Mac)
 ├── verify-persistence.ps1             # PVC persistence proof script (Windows)
 ├── verify-persistence.sh              # PVC persistence proof script (Linux/Mac)
+├── verify-ingress.ps1                 # Ingress controller + HTTP routing verification (Windows)
+├── verify-ingress.sh                  # Ingress controller + HTTP routing verification (Linux/Mac)
 ├── cloud-native-architecture.md       # Detailed architecture document
 └── deployment-strategy.md             # Deployment and rollback strategies
 ```
@@ -119,10 +121,11 @@ bash devops/kubernetes/setup-kind.sh
 The script will:
 
 1. Create a local cluster named `feastflow-local`
-2. Build local images used by manifests (`feastflow-backend:latest`, `feastflow-frontend:latest`)
-3. Load images into the kind cluster
-4. Apply FeastFlow Kubernetes manifests
-5. Verify connectivity and rollout status
+2. Install **NGINX Ingress Controller** (`ingress-nginx`) for real ingress traffic routing
+3. Build local images used by manifests (`feastflow-backend:latest`, `feastflow-frontend:latest`)
+4. Load images into the kind cluster
+5. Apply FeastFlow Kubernetes manifests (including Ingress resource)
+6. Verify connectivity and rollout status
 
 ### kubectl Verification Commands
 
@@ -160,12 +163,22 @@ kubectl rollout status deployment/feastflow-frontend -n feastflow
 ### Access Application
 
 ```bash
-# Get ingress address
+# Confirm ingress object and controller
 kubectl get ingress -n feastflow
+kubectl get pods -n ingress-nginx
 
-# Port-forward for local testing
-kubectl port-forward -n feastflow service/feastflow-frontend 3000:3000
-kubectl port-forward -n feastflow service/feastflow-backend 5000:5000
+# Option A: hosts file mapping
+# 127.0.0.1 feastflow.local
+curl http://feastflow.local/
+curl http://feastflow.local/api/health
+
+# Option B: no hosts update needed (Host header)
+curl -H "Host: feastflow.local" http://localhost/
+curl -H "Host: feastflow.local" http://localhost/api/health
+
+# Automated verification script
+# Windows: .\devops\kubernetes\verify-ingress.ps1
+# Linux/Mac: bash devops/kubernetes/verify-ingress.sh
 ```
 
 ## Key Concepts Demonstrated
@@ -332,6 +345,19 @@ Defined in `10-ingress.yaml`:
 - Host: `feastflow.local`
 - Path `/` routes to frontend service on port `3000`
 - Path `/api` routes to backend service on port `5000`
+
+#### Controller Dependency (Critical)
+
+Ingress resources do not route traffic by themselves.
+
+- The **NGINX Ingress Controller** watches `Ingress` objects from the Kubernetes API
+- It converts host/path rules into active NGINX runtime configuration
+- Without the controller, `kubectl get ingress` can show rules, but external HTTP requests will not be routed
+
+For kind, this repository installs the controller automatically in:
+
+- `setup-kind.ps1`
+- `setup-kind.sh`
 
 This gives a clean single-domain experience while keeping internal service networking private and Kubernetes-native.
 

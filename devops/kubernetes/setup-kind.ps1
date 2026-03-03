@@ -96,6 +96,23 @@ if (-not $apiReady) {
 Write-Host " Kubernetes API is reachable" -ForegroundColor Green
 Write-Host ""
 
+# Install ingress-nginx controller for kind
+Write-Host " Installing NGINX Ingress Controller..." -ForegroundColor Yellow
+kubectl apply -f "https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/kind/deploy.yaml"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host " Failed to install NGINX Ingress Controller" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host " Waiting for ingress-nginx controller to be ready..." -ForegroundColor Gray
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s
+if ($LASTEXITCODE -ne 0) {
+    Write-Host " ingress-nginx controller did not become ready in time" -ForegroundColor Red
+    exit 1
+}
+Write-Host " NGINX Ingress Controller is ready" -ForegroundColor Green
+Write-Host ""
+
 # Build backend image
 Write-Host " Building backend image..." -ForegroundColor Yellow
 docker build -t feastflow-backend:latest $BACKEND_DIR
@@ -175,8 +192,12 @@ Write-Host "  kubectl get pods -n feastflow" -ForegroundColor White
 Write-Host "  kubectl get services -n feastflow" -ForegroundColor White
 Write-Host ""
 Write-Host " Access Application:" -ForegroundColor Cyan
-Write-Host "  kubectl port-forward -n feastflow service/feastflow-frontend 3000:3000" -ForegroundColor White
-Write-Host "  Then open: http://localhost:3000" -ForegroundColor White
+Write-Host "  Add hosts entry: 127.0.0.1 feastflow.local" -ForegroundColor White
+Write-Host "  Test frontend route: curl.exe http://feastflow.local/" -ForegroundColor White
+Write-Host "  Test backend route:  curl.exe http://feastflow.local/api/health" -ForegroundColor White
+Write-Host "  (Alternative without hosts file)" -ForegroundColor White
+Write-Host "  curl.exe -H \"Host: feastflow.local\" http://localhost/" -ForegroundColor White
+Write-Host "  curl.exe -H \"Host: feastflow.local\" http://localhost/api/health" -ForegroundColor White
 Write-Host ""
 Write-Host " View Logs:" -ForegroundColor Cyan
 Write-Host "  kubectl logs -f -n feastflow deployment/feastflow-backend" -ForegroundColor White

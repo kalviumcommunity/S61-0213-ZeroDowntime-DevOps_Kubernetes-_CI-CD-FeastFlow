@@ -37,6 +37,12 @@ fi
 
 kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
 
+echo "🌐 Installing NGINX Ingress Controller"
+kubectl apply -f "https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/kind/deploy.yaml"
+
+echo "⏳ Waiting for ingress-nginx controller"
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s
+
 echo "🐳 Building backend image"
 docker build -t feastflow-backend:latest "${ROOT_DIR}/backend"
 
@@ -74,3 +80,11 @@ echo "  kubectl cluster-info"
 echo "  kubectl get nodes"
 echo "  kubectl get pods -n feastflow"
 echo "  kubectl get services -n feastflow"
+echo ""
+echo "Ingress HTTP verification:"
+echo "  Add hosts entry: 127.0.0.1 feastflow.local"
+echo "  curl http://feastflow.local/"
+echo "  curl http://feastflow.local/api/health"
+echo "  # Alternative without hosts file"
+echo "  curl -H 'Host: feastflow.local' http://localhost/"
+echo "  curl -H 'Host: feastflow.local' http://localhost/api/health"
