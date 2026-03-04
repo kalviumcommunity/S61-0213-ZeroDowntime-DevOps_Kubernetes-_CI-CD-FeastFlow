@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
     "build": "tsc",
+    "test": "tsc --noEmit",
     "start": "node dist/server.js",
     "migrate": "ts-node src/database/migrate.ts"
   },
