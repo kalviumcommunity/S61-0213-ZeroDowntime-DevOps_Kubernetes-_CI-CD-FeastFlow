@@ -25,6 +25,11 @@ export DOCKERHUB_USERNAME=yourusername
 
 Images are automatically built and pushed by the GitHub Actions workflow at `.github/workflows/registry-ci.yml` on every push to `main`.
 
+Tagging strategy is standardized as:
+- `commit-<sha>` (immutable, source traceability)
+- `build-<id>` (CI run traceability)
+- `latest` (moving convenience tag)
+
 ## Documentation
 
 For detailed instructions, scenarios, and troubleshooting, see [dockerhub-usage.md](dockerhub-usage.md).

@@ -1,7 +1,7 @@
 replicaCount: 2
 image:
   repository: feastflow/backend
-  tag: latest
+  tag: "commit-CHANGE_ME"
   pullPolicy: IfNotPresent
 service:
   type: ClusterIP

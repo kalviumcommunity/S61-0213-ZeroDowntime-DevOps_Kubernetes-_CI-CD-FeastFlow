@@ -265,7 +265,7 @@ Deployments reference exact versions
 
 A complete Docker registry workflow has been implemented for this project, demonstrating:
 
-- Image building and multi-tag strategy (`latest`, `sprint3`, `commit-<SHA>`)
+- Image building and multi-tag strategy (`latest`, `build-<RUN_NUMBER>`, `commit-<SHA>`)
 - Pushing/pulling images from Docker Hub
 - CI/CD automation with GitHub Actions
 - Local development scripts for manual testing
@@ -277,7 +277,7 @@ A complete Docker registry workflow has been implemented for this project, demon
 - `devops/registry/build-and-tag.sh` - Build and tag images locally
 - `devops/registry/push.sh` - Push images to Docker Hub
 
-**🚀 CI/CD:** `.github/workflows/registry-ci.yml` automatically builds and pushes images on every push to `main`
+**🚀 CI/CD:** `.github/workflows/registry-ci.yml` automatically builds and pushes frontend/backend images on every push to `main`, with traceability artifacts that map tags to commits.
 
 **⚙️ GitHub Secrets Configuration:**
 

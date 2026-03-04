@@ -55,6 +55,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Compute image tags
+        id: tags
+        run: |
+          SHORT_SHA=$(git rev-parse --short=7 HEAD)
+          echo "backend_commit=feastflow-backend:commit-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "backend_build=feastflow-backend:build-${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "frontend_commit=feastflow-frontend:commit-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "frontend_build=feastflow-frontend:build-${{ github.run_number }}" >> $GITHUB_OUTPUT
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -64,7 +73,9 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: false
-          tags: feastflow-backend:ci
+          tags: |
+            ${{ steps.tags.outputs.backend_commit }}
+            ${{ steps.tags.outputs.backend_build }}
 
       - name: Build frontend Docker image
         uses: docker/build-push-action@v5
@@ -72,4 +83,6 @@ jobs:
           context: ./frontend/app
           file: ./frontend/app/Dockerfile
           push: false
-          tags: feastflow-frontend:ci
+          tags: |
+            ${{ steps.tags.outputs.frontend_commit }}
+            ${{ steps.tags.outputs.frontend_build }}

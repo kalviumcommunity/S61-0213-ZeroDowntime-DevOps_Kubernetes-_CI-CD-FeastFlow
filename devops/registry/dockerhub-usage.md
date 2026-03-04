@@ -30,14 +30,14 @@ FeastFlow uses a **multi-tag strategy** to balance convenience, traceability, an
 
 | Tag            | Purpose                      | Example                                      | Use Case                                 |
 | -------------- | ---------------------------- | -------------------------------------------- | ---------------------------------------- |
-| `latest`       | Most recent production build | `youruser/feastflow-frontend:latest`         | Quick deployments without version lookup |
-| `sprint3`      | Stable milestone release     | `youruser/feastflow-frontend:sprint3`        | Demo, evaluation, and documentation      |
+| `latest`       | Most recent build alias      | `youruser/feastflow-frontend:latest`         | Convenience pull                          |
+| `build-<id>`   | CI/build traceable version   | `youruser/feastflow-frontend:build-482`      | Pipeline debugging and release tracking   |
 | `commit-<sha>` | Exact source code commit     | `youruser/feastflow-frontend:commit-a1b2c3d` | Precise rollback and audit trail         |
 
 **Why three tags?**
 
-- `latest` enables `docker pull youruser/feastflow-frontend` without specifying versions (convenience)
-- `sprint3` provides a **named, immutable reference** for Sprint 3 evaluation
+- `latest` enables `docker pull youruser/feastflow-frontend` without specifying versions (convenience only)
+- `build-<id>` maps images to CI/build runs for debugging failed or risky deployments
 - `commit-<sha>` ensures **every deployed container maps back to exact source code** (Git SHA), critical for debugging production issues
 
 ---
@@ -126,7 +126,7 @@ Run the build script to create a multi-stage Docker image with all three tags:
 3. Tags the image with:
    - `yourusername/feastflow-frontend:commit-a1b2c3d`
    - `yourusername/feastflow-frontend:latest`
-   - `yourusername/feastflow-frontend:sprint3`
+  - `yourusername/feastflow-frontend:build-local-20260304103010`
 
 **Expected output:**
 
@@ -142,13 +142,13 @@ Docker Hub:     yourusername
 ⚙️  Building image: yourusername/feastflow-frontend:commit-a1b2c3d
 [Docker build output...]
 🏷️  Tagging image as: yourusername/feastflow-frontend:latest
-🏷️  Tagging image as: yourusername/feastflow-frontend:sprint3
+🏷️  Tagging image as: yourusername/feastflow-frontend:build-local-20260304103010
 ════════════════════════════════════════════════════════
 ✅ Build Complete! Created tags:
 ────────────────────────────────────────────────────────
    yourusername/feastflow-frontend:commit-a1b2c3d
    yourusername/feastflow-frontend:latest
-   yourusername/feastflow-frontend:sprint3
+  yourusername/feastflow-frontend:build-local-20260304103010
 ════════════════════════════════════════════════════════
 ```
 
@@ -181,7 +181,7 @@ Upload all three tags to Docker Hub:
 **What happens:**
 
 1. Verifies you're logged in to Docker Hub
-2. Pushes all three tags (`commit-<sha>`, `latest`, `sprint3`) to your Docker Hub repository
+2. Pushes all three tags (`commit-<sha>`, `latest`, `build-<id>`) to your Docker Hub repository
 3. Provides links to view the images on Docker Hub
 
 **Expected output:**
@@ -197,7 +197,7 @@ Docker Hub:     yourusername
 📤 Pushing: yourusername/feastflow-frontend:commit-a1b2c3d
 [Docker push output...]
 📤 Pushing: yourusername/feastflow-frontend:latest
-📤 Pushing: yourusername/feastflow-frontend:sprint3
+📤 Pushing: yourusername/feastflow-frontend:build-local-20260304103010
 ════════════════════════════════════════════════════════
 ✅ Push Complete!
 ════════════════════════════════════════════════════════
@@ -208,7 +208,7 @@ Docker Hub:     yourusername
 ### Step 5: Verify on Docker Hub
 
 1. Visit `https://hub.docker.com/r/<yourusername>/feastflow-frontend`
-2. You should see three tags: `latest`, `sprint3`, and `commit-<sha>`
+2. You should see three tags: `latest`, `build-<id>`, and `commit-<sha>`
 3. Each tag shows the image size, last push time, and digest
 
 ### Step 6: Pull and Run from Registry
@@ -223,13 +223,13 @@ docker pull yourusername/feastflow-frontend:latest
 docker pull yourusername/feastflow-frontend:commit-a1b2c3d
 
 # Pull the Sprint 3 milestone
-docker pull yourusername/feastflow-frontend:sprint3
+docker pull yourusername/feastflow-frontend:build-482
 ```
 
 **Run the pulled image:**
 
 ```bash
-docker run -p 3000:3000 yourusername/feastflow-frontend:sprint3
+docker run -p 3000:3000 yourusername/feastflow-frontend:build-482
 ```
 
 ---
@@ -418,7 +418,7 @@ echo $DOCKERHUB_TOKEN | docker login -u $DOCKERHUB_USERNAME --password-stdin
 
 ## Next Steps
 
-1. **Integrate with Kubernetes:** Update Kubernetes manifests to reference your Docker Hub images (e.g., `yourusername/feastflow-frontend:sprint3`)
+1. **Integrate with Kubernetes:** Update Kubernetes manifests to reference immutable Docker Hub images (e.g., `yourusername/feastflow-frontend:commit-a1b2c3d`)
 2. **Automate with CI:** Trigger `registry-ci.yml` workflow on every push to `main` to auto-build and push images
 3. **Add other services:** Repeat this process for backend microservices (pricing, menu, order, etc.)
 4. **Implement image scanning:** Use Docker Hub vulnerability scanning or integrate Trivy/Clair in CI
