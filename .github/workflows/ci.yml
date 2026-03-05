@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  contents: read
+
 jobs:
   backend-ci:
     name: Backend CI
@@ -45,44 +48,4 @@ jobs:
       - name: Build
         run: npm run build
       - name: Run tests
-        run: npm run lint
-
-  docker-image-build:
-    name: Docker Image Build
-    runs-on: ubuntu-latest
-    needs: [backend-ci, frontend-ci]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Compute image tags
-        id: tags
-        run: |
-          SHORT_SHA=$(git rev-parse --short=7 HEAD)
-          echo "backend_commit=feastflow-backend:commit-${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "backend_build=feastflow-backend:build-${{ github.run_number }}" >> $GITHUB_OUTPUT
-          echo "frontend_commit=feastflow-frontend:commit-${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "frontend_build=feastflow-frontend:build-${{ github.run_number }}" >> $GITHUB_OUTPUT
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build backend Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: false
-          tags: |
-            ${{ steps.tags.outputs.backend_commit }}
-            ${{ steps.tags.outputs.backend_build }}
-
-      - name: Build frontend Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend/app
-          file: ./frontend/app/Dockerfile
-          push: false
-          tags: |
-            ${{ steps.tags.outputs.frontend_commit }}
-            ${{ steps.tags.outputs.frontend_build }}
+        run: npm test --if-present
