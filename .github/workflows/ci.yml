@@ -26,9 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build
-        run: npm run build --if-present
+        run: npm run build
       - name: Run tests
-        run: npm test --if-present
+        run: npm test
 
   frontend-ci:
     name: Frontend CI
@@ -46,95 +46,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build
-        run: npm run build --if-present
+        run: npm run build
       - name: Run tests
         run: npm test --if-present
-
-  build-and-push-images:
-    name: Build and Push Images
-    needs: [backend-ci, frontend-ci]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    runs-on: ubuntu-latest
-    outputs:
-      short_sha: ${{ steps.meta.outputs.short_sha }}
-      backend_image: ${{ steps.meta.outputs.backend_image }}
-      frontend_image: ${{ steps.meta.outputs.frontend_image }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Compute image tags
-        id: meta
-        run: |
-          SHORT_SHA="${GITHUB_SHA::7}"
-          BACKEND_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/feastflow-backend:commit-${SHORT_SHA}"
-          FRONTEND_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:commit-${SHORT_SHA}"
-
-          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "backend_image=${BACKEND_IMAGE}" >> "$GITHUB_OUTPUT"
-          echo "frontend_image=${FRONTEND_IMAGE}" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/feastflow-backend:latest
-            ${{ steps.meta.outputs.backend_image }}
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend/app
-          file: ./frontend/app/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:latest
-            ${{ steps.meta.outputs.frontend_image }}
-
-  deploy-to-kubernetes:
-    name: Deploy to Kubernetes
-    needs: [build-and-push-images]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    runs-on: ubuntu-latest
-    env:
-      NAMESPACE: feastflow
-      BACKEND_IMAGE: ${{ needs.build-and-push-images.outputs.backend_image }}
-      FRONTEND_IMAGE: ${{ needs.build-and-push-images.outputs.frontend_image }}
-    steps:
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Configure kubeconfig
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-        run: |
-          mkdir -p "$HOME/.kube"
-          if echo "$KUBE_CONFIG_DATA" | base64 --decode > "$HOME/.kube/config" 2>/dev/null; then
-            echo "Loaded kubeconfig from base64 secret"
-          else
-            printf "%s" "$KUBE_CONFIG_DATA" > "$HOME/.kube/config"
-            echo "Loaded kubeconfig from raw secret"
-          fi
-          chmod 600 "$HOME/.kube/config"
-
-      - name: Update deployment images
-        run: |
-          kubectl -n "$NAMESPACE" set image deployment/feastflow-backend backend="$BACKEND_IMAGE"
-          kubectl -n "$NAMESPACE" set image deployment/feastflow-frontend frontend="$FRONTEND_IMAGE"
-
-      - name: Wait for rolling rollout completion
-        run: |
-          kubectl -n "$NAMESPACE" rollout status deployment/feastflow-backend --timeout=180s
-          kubectl -n "$NAMESPACE" rollout status deployment/feastflow-frontend --timeout=180s

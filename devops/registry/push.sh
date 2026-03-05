@@ -22,11 +22,12 @@ fi
 
 # Get git commit SHA (short form)
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_ID="${BUILD_NUMBER:-local-$(date +%Y%m%d%H%M%S)}"
 
 # Define image name and tags
 IMAGE_BASE="${DOCKERHUB_USERNAME}/${SERVICE_NAME}"
 TAG_LATEST="latest"
-TAG_SPRINT="sprint3"
+TAG_BUILD="build-${BUILD_ID}"
 TAG_COMMIT="commit-${GIT_COMMIT}"
 
 echo "════════════════════════════════════════════════════════"
@@ -55,8 +56,8 @@ docker push "${IMAGE_BASE}:${TAG_COMMIT}"
 echo "📤 Pushing: ${IMAGE_BASE}:${TAG_LATEST}"
 docker push "${IMAGE_BASE}:${TAG_LATEST}"
 
-echo "📤 Pushing: ${IMAGE_BASE}:${TAG_SPRINT}"
-docker push "${IMAGE_BASE}:${TAG_SPRINT}"
+echo "📤 Pushing: ${IMAGE_BASE}:${TAG_BUILD}"
+docker push "${IMAGE_BASE}:${TAG_BUILD}"
 
 echo "════════════════════════════════════════════════════════"
 echo "✅ Push Complete!"
@@ -66,7 +67,7 @@ echo "   https://hub.docker.com/r/${DOCKERHUB_USERNAME}/${SERVICE_NAME}"
 echo ""
 echo "📥 Pull commands:"
 echo "   docker pull ${IMAGE_BASE}:${TAG_LATEST}"
-echo "   docker pull ${IMAGE_BASE}:${TAG_SPRINT}"
+echo "   docker pull ${IMAGE_BASE}:${TAG_BUILD}"
 echo "   docker pull ${IMAGE_BASE}:${TAG_COMMIT}"
 echo "════════════════════════════════════════════════════════"
 echo ""

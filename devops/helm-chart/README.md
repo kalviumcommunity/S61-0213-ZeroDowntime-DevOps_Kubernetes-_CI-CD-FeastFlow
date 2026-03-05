@@ -18,6 +18,6 @@ To override values:
 ```sh
 helm install feastflow-app . \
   --set image.repository=myrepo/backend \
-  --set image.tag=latest \
+  --set image.tag=commit-a1b2c3d \
   --set replicaCount=3
 ```

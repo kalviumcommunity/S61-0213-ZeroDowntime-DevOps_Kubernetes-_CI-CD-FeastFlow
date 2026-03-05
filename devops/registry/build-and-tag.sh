@@ -23,11 +23,12 @@ fi
 
 # Get git commit SHA (short form)
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_ID="${BUILD_NUMBER:-local-$(date +%Y%m%d%H%M%S)}"
 
 # Define image name and tags
 IMAGE_BASE="${DOCKERHUB_USERNAME}/${SERVICE_NAME}"
 TAG_LATEST="latest"
-TAG_SPRINT="sprint3"
+TAG_BUILD="build-${BUILD_ID}"
 TAG_COMMIT="commit-${GIT_COMMIT}"
 
 echo "════════════════════════════════════════════════════════"
@@ -36,6 +37,7 @@ echo "════════════════════════�
 echo "Service:        ${SERVICE_NAME}"
 echo "Dockerfile:     ${DOCKERFILE_PATH}/${DOCKERFILE_NAME}"
 echo "Git Commit:     ${GIT_COMMIT}"
+echo "Build ID:       ${BUILD_ID}"
 echo "Docker Hub:     ${DOCKERHUB_USERNAME}"
 echo "────────────────────────────────────────────────────────"
 
@@ -50,15 +52,15 @@ docker build \
 echo "🏷️  Tagging image as: ${IMAGE_BASE}:${TAG_LATEST}"
 docker tag "${IMAGE_BASE}:${TAG_COMMIT}" "${IMAGE_BASE}:${TAG_LATEST}"
 
-echo "🏷️  Tagging image as: ${IMAGE_BASE}:${TAG_SPRINT}"
-docker tag "${IMAGE_BASE}:${TAG_COMMIT}" "${IMAGE_BASE}:${TAG_SPRINT}"
+echo "🏷️  Tagging image as: ${IMAGE_BASE}:${TAG_BUILD}"
+docker tag "${IMAGE_BASE}:${TAG_COMMIT}" "${IMAGE_BASE}:${TAG_BUILD}"
 
 echo "════════════════════════════════════════════════════════"
 echo "✅ Build Complete! Created tags:"
 echo "────────────────────────────────────────────────────────"
 echo "   ${IMAGE_BASE}:${TAG_COMMIT}"
 echo "   ${IMAGE_BASE}:${TAG_LATEST}"
-echo "   ${IMAGE_BASE}:${TAG_SPRINT}"
+echo "   ${IMAGE_BASE}:${TAG_BUILD}"
 echo "════════════════════════════════════════════════════════"
 echo ""
 echo "💡 Next steps:"

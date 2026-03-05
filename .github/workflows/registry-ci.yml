@@ -6,6 +6,7 @@ on:
     branches:
       - main
     paths:
+      - "backend/**"
       - "frontend/**"
       - ".github/workflows/registry-ci.yml"
       - "devops/registry/**"
@@ -13,8 +14,20 @@ on:
 
 jobs:
   build-and-push:
-    name: Build and Push Frontend Image
+    name: Build and Push Application Images
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: frontend
+            image_name: feastflow-frontend
+            context: ./frontend/app
+            dockerfile: ./frontend/app/Dockerfile
+          - service: backend
+            image_name: feastflow-backend
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
 
     steps:
       # Step 1: Checkout repository code
@@ -34,71 +47,96 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 4: Extract metadata (tags, labels) for Docker image
-      - name: Extract Docker metadata
-        id: meta
+      # Step 4: Create deterministic tags for traceability
+      - name: Compute image tags
+        id: tags
         run: |
-          # Get short commit SHA (first 7 characters)
-          COMMIT_SHA=$(git rev-parse --short HEAD)
-          echo "commit_sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          SHORT_SHA=$(git rev-parse --short=7 HEAD)
+          CREATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          IMAGE_BASE="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image_name }}"
+          COMMIT_TAG="commit-${SHORT_SHA}"
+          BUILD_TAG="build-${{ github.run_number }}"
+          LATEST_TAG="latest"
 
-          # Define image name
-          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend"
-          echo "image_name=${IMAGE_NAME}" >> $GITHUB_OUTPUT
-
-          # Define tags
-          echo "tags<<EOF" >> $GITHUB_OUTPUT
-          echo "${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
-          echo "${IMAGE_NAME}:sprint3" >> $GITHUB_OUTPUT
-          echo "${IMAGE_NAME}:commit-${COMMIT_SHA}" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "created_at=${CREATED_AT}" >> $GITHUB_OUTPUT
+          echo "image_base=${IMAGE_BASE}" >> $GITHUB_OUTPUT
+          echo "commit_tag=${COMMIT_TAG}" >> $GITHUB_OUTPUT
+          echo "build_tag=${BUILD_TAG}" >> $GITHUB_OUTPUT
+          echo "latest_tag=${LATEST_TAG}" >> $GITHUB_OUTPUT
 
       # Step 5: Build and push Docker image with all tags
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend/app
-          file: ./frontend/app/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:sprint3
-            ${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:commit-${{ steps.meta.outputs.commit_sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:latest
+            ${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.latest_tag }}
+            ${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.build_tag }}
+            ${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.commit_tag }}
+          cache-from: type=registry,ref=${{ steps.tags.outputs.image_base }}:latest
           cache-to: type=inline
           labels: |
-            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.version=${{ steps.tags.outputs.build_tag }}
+            org.opencontainers.image.created=${{ steps.tags.outputs.created_at }}
 
-      # Step 6: Output summary with image details
+      # Step 6: Persist image-to-commit traceability metadata
+      - name: Export traceability metadata
+        run: |
+          cat > image-traceability-${{ matrix.service }}.json <<EOF
+          {
+            "service": "${{ matrix.service }}",
+            "image": "${{ steps.tags.outputs.image_base }}",
+            "commit_sha": "${{ github.sha }}",
+            "short_sha": "${{ steps.tags.outputs.short_sha }}",
+            "build_number": "${{ github.run_number }}",
+            "tags": {
+              "latest": "${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.latest_tag }}",
+              "build": "${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.build_tag }}",
+              "commit": "${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.commit_tag }}"
+            }
+          }
+          EOF
+
+      - name: Upload traceability artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-traceability-${{ matrix.service }}
+          path: image-traceability-${{ matrix.service }}.json
+
+      # Step 7: Output summary with image details
       - name: Output build summary
         run: |
           echo "════════════════════════════════════════════════════════" >> $GITHUB_STEP_SUMMARY
           echo "## ✅ Docker Image Build Successful" >> $GITHUB_STEP_SUMMARY
           echo "════════════════════════════════════════════════════════" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Service:** Frontend (Next.js)" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit SHA:** \`${{ steps.meta.outputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Docker Hub Repository:** [\`${{ steps.meta.outputs.image_name }}\`](https://hub.docker.com/r/${{ steps.meta.outputs.image_name }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Service:** ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit SHA:** \`${{ steps.tags.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Number:** \`${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Docker Hub Repository:** [\`${{ steps.tags.outputs.image_base }}\`](https://hub.docker.com/r/${{ steps.tags.outputs.image_base }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🏷️ Tags Pushed:" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:sprint3\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:commit-${{ steps.meta.outputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.latest_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.build_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.commit_tag }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📥 Pull Command:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:commit-${{ steps.meta.outputs.commit_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.commit_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🚀 Next Steps:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Test locally: \`docker run -p 3000:3000 ${{ secrets.DOCKERHUB_USERNAME }}/feastflow-frontend:commit-${{ steps.meta.outputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "2. Update Kubernetes manifest to reference this image tag" >> $GITHUB_STEP_SUMMARY
-          echo "3. Deploy to staging/production cluster" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔎 Traceability:" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit \`${{ github.sha }}\` produced tag \`${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.commit_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- CI run #\`${{ github.run_number }}\` produced tag \`${{ steps.tags.outputs.image_base }}:${{ steps.tags.outputs.build_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifact \`image-traceability-${{ matrix.service }}\` contains full mapping" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-      # Step 7: Notify if build fails
+      # Step 8: Notify if build fails
       - name: Notify on failure
         if: failure()
         run: |
