@@ -266,27 +266,36 @@ Deployments reference exact versions
 A complete Docker registry workflow has been implemented for this project, demonstrating:
 
 - Image building and multi-tag strategy (`latest`, `build-<RUN_NUMBER>`, `commit-<SHA>`)
+- **Secure authentication** using GitHub Secrets (no hardcoded credentials)
 - Pushing/pulling images from Docker Hub
 - CI/CD automation with GitHub Actions
 - Local development scripts for manual testing
 
-**📖 Documentation:** See [devops/registry/dockerhub-usage.md](devops/registry/dockerhub-usage.md) for detailed setup instructions, scripts, and real-world rollback scenarios.
+**🚀 Get Started: [Sprint #3 Setup Guide](devops/registry/SETUP_GUIDE.md)**
+
+**📖 Documentation:** 
+- **[SETUP_GUIDE.md](devops/registry/SETUP_GUIDE.md)** - Step-by-step implementation for Sprint #3
+- [dockerhub-usage.md](devops/registry/dockerhub-usage.md) - Detailed usage, scripts, and rollback scenarios
 
 **🔧 Scripts:**
 
 - `devops/registry/build-and-tag.sh` - Build and tag images locally
 - `devops/registry/push.sh` - Push images to Docker Hub
 
-**🚀 CI/CD:** `.github/workflows/registry-ci.yml` automatically builds and pushes frontend/backend images on every push to `main`, with traceability artifacts that map tags to commits.
+**🚀 CI/CD:** [`.github/workflows/registry-ci.yml`](.github/workflows/registry-ci.yml) automatically builds and pushes frontend/backend images on every push to `main`, with traceability artifacts that map tags to commits.
 
-**⚙️ GitHub Secrets Configuration:**
+**🔐 GitHub Secrets Required:**
 
-To enable automated CI/CD workflow, configure these repository secrets:
+The CI workflow requires secure authentication. You must configure:
 
 1. Go to **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
 2. Add two secrets:
    - `DOCKERHUB_USERNAME` - Your Docker Hub username
-   - `DOCKERHUB_TOKEN` - Docker Hub access token (generate at [Docker Hub Security Settings](https://hub.docker.com/settings/security))
+   - `DOCKERHUB_TOKEN` - Docker Hub **access token** (NOT password - [generate here](https://hub.docker.com/settings/security))
+
+**⚠️ Security**: Credentials are **never** hardcoded. The workflow uses GitHub Secrets and automatically masks credentials in logs as `***`.
+
+**📋 Full setup instructions**: See [SETUP_GUIDE.md](devops/registry/SETUP_GUIDE.md)
 
 Without these secrets, the automated workflow will fail with "Username and password required" error.
 
