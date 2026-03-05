@@ -105,6 +105,34 @@ kubernetes/
 - kubectl configured
 - Docker images built and pushed to registry
 
+## Continuous Deployment from GitHub Actions
+
+Sprint #3 CD is implemented by extending `.github/workflows/ci.yml`.
+
+### Trigger and Flow
+
+On every push to `main`/`master`:
+
+1. backend and frontend CI jobs run (install, build, test)
+2. if CI succeeds, Docker images are built and pushed for both services
+3. images are tagged as `latest` and `commit-<short-sha>`
+4. deployment job updates Kubernetes Deployments using the commit tag
+5. workflow waits for rollout completion (`kubectl rollout status`)
+
+No manual `kubectl apply` step is required for a new release.
+
+### Required GitHub Secrets
+
+- `DOCKERHUB_USERNAME`: Docker Hub username
+- `DOCKERHUB_TOKEN`: Docker Hub access token
+- `KUBE_CONFIG_DATA`: kubeconfig content for the target cluster (raw YAML or base64-encoded)
+
+### Deployment Targets
+
+- Namespace: `feastflow`
+- Backend deployment/container: `feastflow-backend` / `backend`
+- Frontend deployment/container: `feastflow-frontend` / `frontend`
+
 ## Local Cluster Setup (kind)
 
 This project includes a local `kind` workflow for Sprint #3 experimentation.
