@@ -78,8 +78,16 @@ kubernetes/
 ├── 12-backend-hpa.yaml                # Horizontal Pod Autoscaler configurations
 ├── 13-persistence-demo.yaml            # PVC + pod-mounted persistence demo workload
 ├── 14-rbac-basics.yaml                 # Least-privilege RBAC (Role + RoleBinding)
+├── 15-loki.yaml                       # Loki log aggregation system
+├── 16-fluent-bit.yaml                 # Fluent Bit log collector (DaemonSet)
+├── 17-grafana.yaml                    # Grafana visualization for logs
 ├── rollout-demo.ps1                   # Rolling update + rollback demo (Windows)
 ├── rollout-demo.sh                    # Rolling update + rollback demo (Linux/Mac)
+├── deploy-logging.ps1                 # Deploy centralized logging stack (Windows)
+├── deploy-logging.sh                  # Deploy centralized logging stack (Linux/Mac)
+├── verify-centralized-logging.ps1     # Verify logging infrastructure (Windows)
+├── verify-centralized-logging.sh      # Verify logging infrastructure (Linux/Mac)
+├── CENTRALIZED_LOGGING.md             # Complete centralized logging guide
 ├── HEALTH_CHECKS_DEMO.md              # Liveness/readiness behavior demo guide
 ├── SCALING_GUIDE.md                   # Comprehensive scaling guide (manual + HPA)
 ├── PERSISTENCE_DEMO.md                # Persistent storage verification guide
@@ -328,6 +336,105 @@ This project uses **Ingress + Services** for external traffic entry instead of e
 - `ClusterIP` Services are internal-only (reachable inside the cluster)
 - `NodePort` can expose apps, but it is coarse-grained and not ideal for production URL routing
 - Services do not provide Layer-7 routing rules like host/path-based traffic splitting
+
+### 11. Centralized Logging with Loki and Fluent Bit
+
+Instead of checking logs pod-by-pod with `kubectl logs`, this project implements a **centralized logging system** that aggregates logs from all pods into a single queryable database.
+
+#### Why Centralized Logging?
+
+**Problems with Pod-by-Pod Logging:**
+- ❌ Logs lost when pods restart or crash
+- ❌ Hard to correlate errors across multiple replicas
+- ❌ Slow debugging (must check each pod individually)
+- ❌ No historical view or retention
+- ❌ Cannot search across all services at once
+
+**Centralized Logging Benefits:**
+- ✅ **Single pane of glass**: View all logs in one place
+- ✅ **Persistence**: Logs survive pod restarts
+- ✅ **Fast debugging**: Search across all services simultaneously
+- ✅ **Label-based filtering**: Query by namespace, pod, container, service
+- ✅ **Historical analysis**: Query logs from any time period
+- ✅ **Visualization**: Grafana UI for log exploration
+
+#### Architecture
+
+```
+Pods (stdout/stderr) 
+    ↓
+Fluent Bit (DaemonSet - collects logs)
+    ↓
+Loki (stores and indexes logs)
+    ↓
+Grafana (visualization and querying)
+```
+
+#### Components
+
+1. **Fluent Bit (DaemonSet)**: Runs on every node, collects container logs
+2. **Loki**: Stores logs with labels (like Prometheus but for logs)
+3. **Grafana**: Web UI for querying and visualizing logs
+
+#### Deploy Centralized Logging
+
+```bash
+# Windows
+.\devops\kubernetes\deploy-logging.ps1
+
+# Linux/Mac
+bash devops/kubernetes/deploy-logging.sh
+```
+
+#### Verify Logging Stack
+
+```bash
+# Windows
+.\devops\kubernetes\verify-centralized-logging.ps1
+
+# Linux/Mac
+bash devops/kubernetes/verify-centralized-logging.sh
+```
+
+#### Access Grafana
+
+```
+URL:      http://localhost:30300
+Username: admin
+Password: feastflow2024
+```
+
+#### Query Logs (LogQL Examples)
+
+```logql
+# All logs from feastflow namespace
+{k8s_namespace_name="feastflow"}
+
+# Backend service logs only
+{k8s_labels_app="backend"}
+
+# Search for errors across all services
+{k8s_namespace_name="feastflow"} |~ "error|ERROR|exception"
+
+# Logs from specific pod
+{k8s_pod_name="backend-7d9f8c-abc123"}
+```
+
+#### What This Demonstrates
+
+✅ **Log Collection**: Fluent Bit collects logs from all pods  
+✅ **Log Aggregation**: Loki stores logs centrally  
+✅ **Log Enrichment**: Automatic Kubernetes metadata (namespace, pod, labels)  
+✅ **Querying**: LogQL for powerful log searches  
+✅ **Visualization**: Grafana for log exploration  
+✅ **Retention**: Persistent storage for historical logs  
+
+📖 **Complete Guide**: See [CENTRALIZED_LOGGING.md](CENTRALIZED_LOGGING.md) for:
+- Detailed architecture explanation
+- LogQL query examples
+- Troubleshooting guide
+- Best practices for production logging
+
 - Ingress provides a single HTTP/HTTPS entry point and routes traffic to the correct Service
 
 #### Request Flow (Internet → Pod)

@@ -95,3 +95,14 @@ git log -p --all | grep -i "dckr_pat"
 ## Additional Documentation
 
 For detailed usage and advanced scenarios, see [dockerhub-usage.md](dockerhub-usage.md).
+# Deploy the logging stack
+cd devops\kubernetes
+.\deploy-logging.ps1
+
+# Verify everything is working
+.\verify-centralized-logging.ps1
+
+# Access Grafana
+# URL: http://localhost:30300
+# Username: admin
+# Password: feastflow2024
