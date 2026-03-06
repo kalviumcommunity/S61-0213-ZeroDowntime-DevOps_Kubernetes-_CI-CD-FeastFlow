@@ -446,6 +446,12 @@ Why this access level is appropriate:
 
 ## Monitoring and Observability
 
+For Sprint #3 conceptual understanding (metrics, logs, traces, and when to use each), see:
+
+- [OBSERVABILITY_FOUNDATIONS.md](OBSERVABILITY_FOUNDATIONS.md)
+
+Current operational checks in this repo:
+
 ```bash
 # View logs
 kubectl logs -f deployment/feastflow-backend -n feastflow
