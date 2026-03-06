@@ -1,0 +1,67 @@
+# Prometheus Helm values for FeastFlow
+prometheus:
+  enabled: true
+  server:
+    service:
+      type: ClusterIP
+    retention: 7d
+    scrape_interval: 15s
+  alertmanager:
+    enabled: false
+  pushgateway:
+    enabled: false
+
+# Grafana Helm values for FeastFlow
+grafana:
+  enabled: true
+  adminPassword: feastflowadmin
+  service:
+    type: ClusterIP
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-server
+          access: proxy
+          isDefault: true
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: "FeastFlow"
+          orgId: 1
+          folder: "FeastFlow"
+          type: file
+          options:
+            path: /var/lib/grafana/dashboards/FeastFlow
+  dashboards:
+    FeastFlow:
+      feastflow-overview:
+        json: |-
+          {
+            "title": "FeastFlow Overview",
+            "panels": [
+              {
+                "type": "graph",
+                "title": "Pod CPU Usage",
+                "targets": [
+                  {
+                    "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"feastflow.*\"}[5m])) by (pod)",
+                    "format": "time_series"
+                  }
+                ]
+              },
+              {
+                "type": "graph",
+                "title": "Pod Memory Usage",
+                "targets": [
+                  {
+                    "expr": "sum(container_memory_usage_bytes{pod=~\"feastflow.*\"}) by (pod)",
+                    "format": "time_series"
+                  }
+                ]
+              }
+            ]
+          }
