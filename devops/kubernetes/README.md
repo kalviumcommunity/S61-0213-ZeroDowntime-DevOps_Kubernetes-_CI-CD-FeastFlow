@@ -89,6 +89,7 @@ kubernetes/
 ├── verify-centralized-logging.sh      # Verify logging infrastructure (Linux/Mac)
 ├── CENTRALIZED_LOGGING.md             # Complete centralized logging guide
 ├── HEALTH_CHECKS_DEMO.md              # Liveness/readiness behavior demo guide
+├── DEBUGGING_DEPLOYED_APPLICATIONS.md # Structured kubectl debugging workflow (symptom -> root cause)
 ├── SCALING_GUIDE.md                   # Comprehensive scaling guide (manual + HPA)
 ├── PERSISTENCE_DEMO.md                # Persistent storage verification guide
 ├── scaling-demo.ps1                   # Manual scaling demo (Windows)
@@ -556,6 +557,7 @@ Why this access level is appropriate:
 For Sprint #3 conceptual understanding (metrics, logs, traces, and when to use each), see:
 
 - [OBSERVABILITY_FOUNDATIONS.md](OBSERVABILITY_FOUNDATIONS.md)
+- [DEBUGGING_DEPLOYED_APPLICATIONS.md](DEBUGGING_DEPLOYED_APPLICATIONS.md)
 
 Current operational checks in this repo:
 
