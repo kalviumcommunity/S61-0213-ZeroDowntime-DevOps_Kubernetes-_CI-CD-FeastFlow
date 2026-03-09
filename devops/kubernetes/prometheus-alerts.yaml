@@ -1,0 +1,11 @@
+groups:
+- name: feastflow-alerts
+  rules:
+  - alert: PodNotReady
+    expr: kube_pod_status_ready{condition="false"} > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Pod is not ready"
+      description: "One or more pods are not ready in the cluster."
