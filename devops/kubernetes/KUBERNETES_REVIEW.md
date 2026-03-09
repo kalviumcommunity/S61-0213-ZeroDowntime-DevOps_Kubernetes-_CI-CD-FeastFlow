@@ -128,7 +128,7 @@ volumeMounts:
 
 ### **Backend API Deployment** ([06-backend-deployment.yaml](06-backend-deployment.yaml))
 
-This is the STAR of our infrastructure! 
+This is the STAR of our infrastructure!
 
 **Deployment Configuration**:
 
@@ -151,7 +151,7 @@ strategy:
   - Creates another v2 pod → 3 pods
   - Terminates last v1 pod → 2 v2 pods
 - **After Rollout**: 2 new pods running (backend-v2)
-- **Result**: Service never drops below 2 pods = ZERO DOWNTIME! 
+- **Result**: Service never drops below 2 pods = ZERO DOWNTIME!
 
 **Container Configuration**:
 
@@ -222,11 +222,11 @@ affinity:
           topologyKey: kubernetes.io/hostname
 ```
 
--  **Why?** Spreads backend pods across different nodes
--  **Benefit**: If one node fails, other backend pod(s) still running
--  **Note**: "Preferred" not "required" - flexible when nodes limited
+- **Why?** Spreads backend pods across different nodes
+- **Benefit**: If one node fails, other backend pod(s) still running
+- **Note**: "Preferred" not "required" - flexible when nodes limited
 
-**Rating**: 10/10 - **PRODUCTION-GRADE DEPLOYMENT** - This is EXACTLY how professional teams deploy microservices! 
+**Rating**: 10/10 - **PRODUCTION-GRADE DEPLOYMENT** - This is EXACTLY how professional teams deploy microservices!
 
 ---
 
@@ -334,7 +334,7 @@ selector:
 
 - DNS: `feastflow-backend.feastflow.svc.cluster.local:5000`
 - Short: `feastflow-backend:5000` (within same namespace)
--  Frontend uses this to call backend
+- Frontend uses this to call backend
 
 **Annotations**:
 
@@ -744,6 +744,37 @@ Deployments are the **standard way** to run stateless applications in Kubernetes
 6. ✅ Show health check integration
 
 **Commands to run** (see [ROLLOUT_DEMO_GUIDE.md](ROLLOUT_DEMO_GUIDE.md)).
+
+---
+
+## Troubleshooting: Pod Pending & ErrImageNeverPull
+
+### Symptom
+
+- Backend and frontend pods remain in Pending state.
+- Events show `ErrImageNeverPull` and `Container image ... is not present with pull policy of Never`.
+
+### Root Cause
+
+- The imagePullPolicy is set to `Never`.
+- Required images (`feastflow-backend:latest`, `feastflow-frontend:latest`) are not present on the node.
+
+### Solution
+
+1. **Build and load images locally:**
+   - Build Docker images on the node running Kubernetes.
+   - Use `kubectl apply` after confirming images exist locally.
+2. **Change imagePullPolicy:**
+   - Set `imagePullPolicy: IfNotPresent` or `Always` in deployment YAMLs.
+   - Push images to a registry and update image references.
+
+### Example Fix
+
+```yaml
+imagePullPolicy: IfNotPresent
+```
+
+> Ensure images are available to the cluster, or update the pull policy and registry references.
 
 ---
 
