@@ -6,6 +6,8 @@ prometheus:
       type: ClusterIP
     retention: 7d
     scrape_interval: 15s
+    ruleFiles:
+      - /etc/prometheus/prometheus-alerts.yaml
   alertmanager:
     enabled: false
   pushgateway:
