@@ -120,6 +120,14 @@ Customer UI reflects changes in real-time
 
 No restart required. No downtime.
 
+Backend Operational Endpoints
+
+For lightweight runtime checks during development and Kubernetes operations:
+
+- `GET /api/health` - liveness probe endpoint (process health)
+- `GET /api/ready` - readiness probe endpoint (dependency health, includes DB check)
+- `GET /api/status` - runtime diagnostics (uptime, memory, environment, version)
+
 Project Structure
 /frontend
 /customer-ui
