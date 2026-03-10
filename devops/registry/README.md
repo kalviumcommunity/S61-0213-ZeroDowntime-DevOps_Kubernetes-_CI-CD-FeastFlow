@@ -27,6 +27,36 @@ This directory contains scripts and documentation for managing Docker images and
 - **[verify-security.ps1](verify-security.ps1)** - Security verification (Windows)
 
 ## Quick Start for Local Development
+## 💾 Persistence in Registry Operations
+
+Persistence ensures that Docker images and registry data are reliably stored and remain available across container restarts, deployments, and system failures. In DevOps pipelines, persistent storage is critical for:
+
+- Retaining built images for future deployments
+- Enabling rollback to previous versions
+- Supporting disaster recovery and high availability
+- Maintaining audit logs and metadata
+
+When using a self-hosted registry or cloud registry, configure persistent volumes (PVCs) in Kubernetes or use managed storage solutions to avoid data loss. Always verify that your registry's storage backend is properly set up and monitored.
+
+For more details, see the Kubernetes PVC and deployment YAML files in the `devops/kubernetes/` directory.
+## 🐞 Debugging & Troubleshooting
+
+If you encounter issues with Docker registry operations, try the following:
+
+- **Check Docker login:**
+	- Run `docker login` and verify credentials.
+- **Verify image tags:**
+	- Ensure image tags match your repository and are not duplicated.
+- **Check script permissions:**
+	- On Linux/macOS, run `chmod +x *.sh` to make scripts executable.
+- **Review logs:**
+	- Use `docker logs <container>` for running containers.
+- **Network issues:**
+	- Ensure your network allows access to Docker Hub and registry endpoints.
+- **Security verification:**
+	- Run `verify-security.sh` or `verify-security.ps1` to check for exposed credentials.
+
+For more troubleshooting, see [dockerhub-usage.md](dockerhub-usage.md) and [QUICK_REFERENCE.md](QUICK_REFERENCE.md).
 
 ```bash
 # Set your Docker Hub username
