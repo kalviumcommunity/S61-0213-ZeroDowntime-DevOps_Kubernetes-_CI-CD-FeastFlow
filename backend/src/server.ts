@@ -154,6 +154,42 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
+// Ping endpoint - Simple connectivity check
+app.get('/api/ping', (req: Request, res: Response) => {
+  res.status(200).json({
+    message: 'pong',
+    timestamp: new Date().toISOString(),
+    service: 'feastflow-backend',
+  });
+});
+
+// Debug endpoint - Returns runtime diagnostics for debugging
+app.get('/api/debug', (req: Request, res: Response) => {
+  const memoryUsage = process.memoryUsage();
+  res.status(200).json({
+    status: 'debug',
+    timestamp: new Date().toISOString(),
+    service: 'feastflow-backend',
+    pid: process.pid,
+    platform: process.platform,
+    nodeVersion: process.version,
+    cwd: process.cwd(),
+    uptimeSeconds: Number(process.uptime().toFixed(2)),
+    memory: {
+      rss: memoryUsage.rss,
+      heapTotal: memoryUsage.heapTotal,
+      heapUsed: memoryUsage.heapUsed,
+      external: memoryUsage.external,
+    },
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      APP_VERSION: process.env.APP_VERSION,
+      FRONTEND_URL: process.env.FRONTEND_URL,
+      ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k.startsWith('FEASTFLOW_'))),
+    },
+  });
+});
+
 // 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
