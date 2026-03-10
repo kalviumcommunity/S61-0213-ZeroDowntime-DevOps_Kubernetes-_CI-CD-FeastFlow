@@ -67,6 +67,28 @@ Server will run on http://localhost:5000
 
 ## API Endpoints
 
+### Operations
+
+#### Liveness
+
+```
+GET /api/health
+```
+
+#### Readiness
+
+```
+GET /api/ready
+```
+
+#### Runtime Status
+
+Returns non-sensitive runtime diagnostics (uptime, memory usage, environment, version).
+
+```
+GET /api/status
+```
+
 ### Authentication
 
 #### Register

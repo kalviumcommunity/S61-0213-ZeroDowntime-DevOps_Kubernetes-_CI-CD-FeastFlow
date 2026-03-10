@@ -116,6 +116,28 @@ app.get('/api/ready', async (req: Request, res: Response) => {
   }
 });
 
+// Runtime status route - Useful for quick operational diagnostics
+app.get('/api/status', (req: Request, res: Response) => {
+  const toMb = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  const memoryUsage = process.memoryUsage();
+
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'feastflow-backend',
+    version: process.env.APP_VERSION || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    uptimeSeconds: Number(process.uptime().toFixed(2)),
+    uptimeHuman: `${Math.floor(process.uptime() / 60)}m ${Math.floor(process.uptime() % 60)}s`,
+    memory: {
+      rss: toMb(memoryUsage.rss),
+      heapTotal: toMb(memoryUsage.heapTotal),
+      heapUsed: toMb(memoryUsage.heapUsed),
+      external: toMb(memoryUsage.external),
+    },
+  });
+});
+
 // Root route
 app.get('/', (req: Request, res: Response) => {
   res.json({
@@ -123,6 +145,8 @@ app.get('/', (req: Request, res: Response) => {
     version: '1.0.0',
     endpoints: {
       health: '/api/health',
+      ready: '/api/ready',
+      status: '/api/status',
       auth: '/api/auth',
       cart: '/api/cart',
       dashboard: '/api/dashboard',
