@@ -78,14 +78,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Load cart from backend when user logs in
   useEffect(() => {
     if (user) {
-      // Load cart data from backend - this is a legitimate data fetching use case
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      loadCart();
-    } else {
-      // Clear cart when user logs out - synchronizing with auth state
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCart([]);
+      // Load cart data from backend when auth context becomes available.
+      const timeoutId = window.setTimeout(() => {
+        void loadCart();
+      }, 0);
+      return () => window.clearTimeout(timeoutId);
     }
+
+    const timeoutId = window.setTimeout(() => {
+      setCart([]);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [user, loadCart]);
 
   const addToCart = async (menuItem: MenuItem, restaurant: Restaurant) => {
@@ -157,7 +161,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity === 0) {
-      removeFromCart(itemId);
+      await removeFromCart(itemId);
       return;
     }
 

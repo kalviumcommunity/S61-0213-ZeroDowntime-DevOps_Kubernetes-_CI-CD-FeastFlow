@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo, useState } from 'react';
+
 interface AuditLogEntry {
   id: number;
   action: string;
@@ -120,18 +122,153 @@ const iconMap = {
   },
 };
 
+const severityOptions: Array<AuditLogEntry['type'] | 'all'> = ['all', 'warning', 'error', 'info', 'success'];
+
+const severityLabelMap: Record<AuditLogEntry['type'], string> = {
+  warning: 'Warning',
+  error: 'Error',
+  info: 'Info',
+  success: 'Success',
+};
+
+function toTimeValue(timestamp: string) {
+  return new Date(timestamp.replace(' ', 'T')).getTime();
+}
+
+function formatTimestamp(timestamp: string) {
+  const date = new Date(timestamp.replace(' ', 'T'));
+  if (Number.isNaN(date.getTime())) {
+    return timestamp;
+  }
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function AuditLogPage() {
+  const [query, setQuery] = useState('');
+  const [selectedType, setSelectedType] = useState<AuditLogEntry['type'] | 'all'>('all');
+  const [newestFirst, setNewestFirst] = useState(true);
+
+  const filteredLogs = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    const logs = auditLogs.filter((log) => {
+      if (selectedType !== 'all' && log.type !== selectedType) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [log.action, log.target, log.description, log.user]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery);
+    });
+
+    return logs.sort((a, b) => {
+      const timeDiff = toTimeValue(a.timestamp) - toTimeValue(b.timestamp);
+      return newestFirst ? -timeDiff : timeDiff;
+    });
+  }, [newestFirst, query, selectedType]);
+
+  const counts = useMemo(() => {
+    return auditLogs.reduce<Record<AuditLogEntry['type'], number>>(
+      (acc, item) => {
+        acc[item.type] += 1;
+        return acc;
+      },
+      { warning: 0, error: 0, info: 0, success: 0 },
+    );
+  }, []);
+
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Audit Log</h1>
         <p className="text-gray-600">Complete history of admin actions and system events</p>
       </div>
 
+      {/* Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Warnings</p>
+          <p className="text-2xl font-bold text-yellow-600">{counts.warning}</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Errors</p>
+          <p className="text-2xl font-bold text-red-600">{counts.error}</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Info</p>
+          <p className="text-2xl font-bold text-gray-700">{counts.info}</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Success</p>
+          <p className="text-2xl font-bold text-green-600">{counts.success}</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+          <div className="flex-1">
+            <label htmlFor="audit-search" className="sr-only">
+              Search audit logs
+            </label>
+            <input
+              id="audit-search"
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search action, target, user, or description"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <label htmlFor="severity-filter" className="sr-only">
+              Filter by severity
+            </label>
+            <select
+              id="severity-filter"
+              value={selectedType}
+              onChange={(event) => setSelectedType(event.target.value as AuditLogEntry['type'] | 'all')}
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              {severityOptions.map((level) => (
+                <option key={level} value={level}>
+                  {level === 'all' ? 'All severities' : severityLabelMap[level]}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={() => setNewestFirst((value) => !value)}
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              {newestFirst ? 'Newest first' : 'Oldest first'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Audit Log List */}
       <div className="space-y-4">
-        {auditLogs.map((log) => {
+        {filteredLogs.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
+            <p className="text-gray-700 font-semibold mb-1">No matching audit events</p>
+            <p className="text-sm text-gray-500">Try a different search term or severity filter.</p>
+          </div>
+        ) : (
+          filteredLogs.map((log) => {
           const iconConfig = iconMap[log.type];
           return (
             <div
@@ -146,24 +283,27 @@ export default function AuditLogPage() {
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-1">
-                    <div>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 mb-1">
+                    <div className="min-w-0">
                       <span className="font-bold text-gray-900">{log.action}</span>
                       <span className="text-gray-600 mx-2">on</span>
                       <span className="text-orange-600 font-medium">{log.target}</span>
                     </div>
+                    <span className="inline-flex w-fit rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 uppercase">
+                      {severityLabelMap[log.type]}
+                    </span>
                   </div>
                   <p className="text-gray-600 mb-2">{log.description}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-gray-500">
                     <span>{log.user}</span>
                     <span>•</span>
-                    <span>{log.timestamp}</span>
+                    <span>{formatTimestamp(log.timestamp)}</span>
                   </div>
                 </div>
               </div>
             </div>
           );
-        })}
+        }))}
       </div>
     </div>
   );
