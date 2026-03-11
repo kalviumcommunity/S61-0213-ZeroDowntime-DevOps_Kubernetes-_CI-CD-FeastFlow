@@ -39,6 +39,48 @@ Persistence ensures that Docker images and registry data are reliably stored and
 When using a self-hosted registry or cloud registry, configure persistent volumes (PVCs) in Kubernetes or use managed storage solutions to avoid data loss. Always verify that your registry's storage backend is properly set up and monitored.
 
 For more details, see the Kubernetes PVC and deployment YAML files in the `devops/kubernetes/` directory.
+## 🛠️ Rollback, Failure Simulation, and Deployment Validation 
+
+This section demonstrates operational confidence under failure by simulating, detecting, and recovering from deployment issues in Kubernetes.
+
+### 1. Simulate a Failure
+- Edit your deployment YAML (e.g., `06-backend-deployment.yaml`) to use a broken image tag or misconfigured probe.
+- Apply the change:
+	```
+	kubectl apply -f devops/kubernetes/06-backend-deployment.yaml
+	```
+- Observe pod status:
+	```
+	kubectl get pods
+	kubectl describe pod <pod-name>
+	kubectl logs <pod-name>
+	```
+	Pods should show errors like `CrashLoopBackOff` or `ImagePullBackOff`.
+
+### 2. Rollback to Known-Good Version
+- Roll back the deployment:
+	```
+	kubectl rollout undo deployment/backend-deployment
+	```
+- Verify recovery:
+	```
+	kubectl rollout status deployment/backend-deployment
+	kubectl get pods
+	```
+
+### 3. Validate Recovery
+- Check pod health:
+	```
+	kubectl get pods
+	```
+- Test application endpoint:
+	```
+	curl http://<service-ip>:<port>
+	```
+	Should return expected response.
+
+### 4. Why Rollback Matters
+Rollback is a first-class deployment strategy in Kubernetes, enabling safe recovery from failures and minimizing downtime. Always validate that your application recovers and traffic is restored after rollback.
 ## 🐞 Debugging & Troubleshooting
 
 If you encounter issues with Docker registry operations, try the following:
