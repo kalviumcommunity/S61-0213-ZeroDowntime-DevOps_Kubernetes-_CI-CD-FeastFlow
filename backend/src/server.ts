@@ -35,13 +35,25 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Enable CORS
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+const allowedOrigins = new Set(['http://localhost:3000', 'http://localhost:3001']);
+
 if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
+  process.env.FRONTEND_URL
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .forEach((origin) => allowedOrigins.add(origin));
 }
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('CORS origin denied'));
+  },
   credentials: true,
 }));
 
@@ -165,6 +177,15 @@ app.get('/api/ping', (req: Request, res: Response) => {
 
 // Debug endpoint - Returns runtime diagnostics for debugging
 app.get('/api/debug', (req: Request, res: Response) => {
+  const debugEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_ENDPOINT === 'true';
+  if (!debugEnabled) {
+    res.status(404).json({
+      success: false,
+      message: 'Route not found',
+    });
+    return;
+  }
+
   const memoryUsage = process.memoryUsage();
   res.status(200).json({
     status: 'debug',
