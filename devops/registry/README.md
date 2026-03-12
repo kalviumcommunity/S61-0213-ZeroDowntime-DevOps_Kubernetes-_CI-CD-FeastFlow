@@ -69,15 +69,34 @@ This section demonstrates operational confidence under failure by simulating, de
 	```
 
 ### 3. Validate Recovery
-- Check pod health:
 	```
 	kubectl get pods
 	```
-- Test application endpoint:
 	```
 	curl http://<service-ip>:<port>
 	```
 	Should return expected response.
+
+## 🌐 Verifying Ingress Configuration
+
+To ensure your Kubernetes ingress is working correctly:
+
+1. Apply the ingress resource:
+	```
+	kubectl apply -f devops/kubernetes/10-ingress.yaml
+	```
+2. Check ingress status:
+	```
+	kubectl get ingress
+	kubectl describe ingress <ingress-name>
+	```
+3. Test access from your browser or with curl:
+	```
+	curl http://localhost/<path>
+	```
+4. Confirm external IP or hostname is assigned and routes traffic to the correct service.
+5. Review logs for errors and validate TLS if enabled.
+
 
 ### 4. Why Rollback Matters
 Rollback is a first-class deployment strategy in Kubernetes, enabling safe recovery from failures and minimizing downtime. Always validate that your application recovers and traffic is restored after rollback.
