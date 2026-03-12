@@ -4,13 +4,22 @@ import jwt from 'jsonwebtoken';
 import { query } from '../database/db';
 import { RegisterDTO, LoginDTO, UserRole, AuthRequest } from '../types';
 
+const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.trim().length < 16) {
+    throw new Error('JWT_SECRET is missing or too weak');
+  }
+  return secret;
+};
+
+const normalizeEmail = (email: string): string => email.trim().toLowerCase();
+
 // Generate JWT Token
 const generateToken = (id: string, email: string, role: UserRole): string => {
   const payload = { id, email, role };
-  const secret = process.env.JWT_SECRET || 'default_secret';
   const expire = process.env.JWT_EXPIRE || '7d';
   
-  return jwt.sign(payload, secret, { expiresIn: expire as any });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: expire as any });
 };
 
 // Send token response
@@ -27,7 +36,7 @@ const sendTokenResponse = (
     ),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    sameSite: process.env.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
   };
 
   res
@@ -54,16 +63,32 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, firstName, lastName, phoneNumber, role }: RegisterDTO = req.body;
 
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or password format',
+      });
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+
     // Validation
-    if (!email || !password || !firstName || !lastName) {
+    if (!normalizedEmail || !password || !firstName || !lastName) {
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields',
       });
     }
 
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters long',
+      });
+    }
+
     // Check if user exists
-    const userExists = await query('SELECT * FROM users WHERE email = $1', [email]);
+    const userExists = await query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
 
     if (userExists.rows.length > 0) {
       return res.status(400).json({
@@ -76,13 +101,20 @@ export const register = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user (default role is customer)
-    const userRole = role || UserRole.CUSTOMER;
+    // Block privilege escalation from public registration flow.
+    const userRole = UserRole.CUSTOMER;
+    if (role && role !== UserRole.CUSTOMER) {
+      return res.status(403).json({
+        success: false,
+        message: 'Registration with elevated roles is not allowed',
+      });
+    }
+
     const result = await query(
       `INSERT INTO users (email, password, first_name, last_name, role, phone_number)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [email, hashedPassword, firstName, lastName, userRole, phoneNumber || null]
+      [normalizedEmail, hashedPassword, firstName, lastName, userRole, phoneNumber || null]
     );
 
     const user = result.rows[0];
@@ -103,8 +135,17 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password }: LoginDTO = req.body;
 
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or password format',
+      });
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+
     // Validation
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide email and password',
@@ -114,7 +155,7 @@ export const login = async (req: Request, res: Response) => {
     // Check for user
     const result = await query(
       'SELECT * FROM users WHERE email = $1 AND is_active = true',
-      [email]
+      [normalizedEmail]
     );
 
     if (result.rows.length === 0) {

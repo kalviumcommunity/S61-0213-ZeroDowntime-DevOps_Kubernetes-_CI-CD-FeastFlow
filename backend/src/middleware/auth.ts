@@ -2,6 +2,14 @@ import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthRequest, JWTPayload } from '../types';
 
+const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.trim().length < 16) {
+    throw new Error('JWT_SECRET is missing or too weak');
+  }
+  return secret;
+};
+
 export const protect = async (
   req: AuthRequest,
   res: Response,
@@ -18,7 +26,7 @@ export const protect = async (
       token = req.headers.authorization.split(' ')[1];
     }
     // Check for token in cookies
-    else if (req.cookies.token) {
+    else if (req.cookies?.token) {
       token = req.cookies.token;
     }
 
@@ -33,7 +41,7 @@ export const protect = async (
       // Verify token
       const decoded = jwt.verify(
         token,
-        process.env.JWT_SECRET || 'default_secret'
+        getJwtSecret()
       ) as JWTPayload;
 
       req.user = {
