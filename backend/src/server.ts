@@ -9,6 +9,7 @@ import cartRoutes from './routes/cartRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import networkRoutes from './routes/networkRoutes';
 import healthRoutes from './routes/healthRoutes';
+import timeRoutes from './routes/timeRoutes';
 import { query } from './database/db';
 
 // Load env vars
@@ -67,6 +68,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/network', networkRoutes);
 app.use('/api', healthRoutes);
+app.use('/api', timeRoutes);
 
 // Liveness check route - Indicates process health (not dependency health)
 app.get('/api/health', async (req: Request, res: Response) => {

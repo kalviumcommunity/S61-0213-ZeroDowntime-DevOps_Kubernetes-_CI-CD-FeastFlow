@@ -1,13 +1,13 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import RestaurantCard from '@/components/RestaurantCard';
 import { restaurants } from '@/data/restaurants';
 
 const categories = ['All', 'Japanese', 'Italian', 'American', 'Indian', 'Mexican', 'Thai', 'Chinese', 'Mediterranean'];
 
-export default function Home() {
+function Home() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const restaurantsSectionRef = useRef<HTMLDivElement>(null);
@@ -125,5 +125,13 @@ export default function Home() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function HomePageWithSuspense() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Home />
+    </Suspense>
   );
 }
