@@ -60,6 +60,7 @@ const getServiceIcon = (name: string) => {
 export default function SystemHealthPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     fetchSystemHealth();
@@ -70,6 +71,7 @@ export default function SystemHealthPage() {
 
   const fetchSystemHealth = async () => {
     try {
+      setFetchError(false);
       const token = localStorage.getItem('token');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/dashboard/health`,
@@ -84,21 +86,33 @@ export default function SystemHealthPage() {
       if (response.ok) {
         const data = await response.json();
         setServices(data.data.services);
+      } else {
+        setFetchError(true);
       }
     } catch (error) {
       console.error('Failed to fetch system health:', error);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
   };
 
   const healthyServices = services.filter(s => s.status === 'HEALTHY').length;
+  const degradedServices = services.filter(s => s.status === 'DEGRADED').length;
+  const downServices = services.filter(s => s.status === 'DOWN').length;
   const totalServices = services.length;
+  const overallHealthy = downServices === 0 && degradedServices === 0;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading system health...</div>
+        <div className="flex items-center gap-3 text-gray-600">
+          <svg className="animate-spin w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Loading system health...
+        </div>
       </div>
     );
   }
@@ -123,21 +137,57 @@ export default function SystemHealthPage() {
       </div>
 
       {/* Overall Status Banner */}
-      <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">All Systems Operational</h2>
-            <p className="text-gray-700">
-              {healthyServices}/{totalServices} services healthy • Last checked just now
-            </p>
+      {fetchError ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Unable to fetch service status</h2>
+              <p className="text-gray-700">Could not connect to the backend API. Please check connectivity and try refreshing.</p>
+            </div>
           </div>
         </div>
-      </div>
+      ) : totalServices === 0 ? null : overallHealthy ? (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">All Systems Operational</h2>
+              <p className="text-gray-700">
+                {healthyServices}/{totalServices} services healthy • Last checked just now
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className={`border rounded-xl p-6 mb-8 ${downServices > 0 ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
+          <div className="flex items-center gap-4">
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center ${downServices > 0 ? 'bg-red-100' : 'bg-yellow-100'}`}>
+              <svg className={`w-8 h-8 ${downServices > 0 ? 'text-red-600' : 'text-yellow-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">
+                {downServices > 0 ? 'Service Outage Detected' : 'Partial Degradation'}
+              </h2>
+              <p className="text-gray-700">
+                {healthyServices}/{totalServices} services healthy
+                {degradedServices > 0 && ` • ${degradedServices} degraded`}
+                {downServices > 0 && ` • ${downServices} down`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

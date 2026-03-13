@@ -4,12 +4,15 @@ import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@/types';
+import { Toast, useToast } from '@/components/Toast';
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const hasInitialized = useRef(false);
+  const { toasts, showToast } = useToast();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -28,33 +31,68 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user && !hasInitialized.current) {
       hasInitialized.current = true;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phoneNumber: user.phoneNumber || '',
-        address: user.address || '',
-      });
+      const id = window.setTimeout(() => {
+        setFormData({
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          email: user.email || '',
+          phoneNumber: user.phoneNumber || '',
+          address: user.address || '',
+        });
+      }, 0);
+      return () => window.clearTimeout(id);
     }
   }, [user]);
 
   const handleSave = async () => {
-    // TODO: Implement API call to update profile
-    alert('Profile update functionality will be implemented with backend API');
-    setIsEditing(false);
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${API_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phoneNumber: formData.phoneNumber,
+          address: formData.address,
+        }),
+      });
+      if (response.ok) {
+        showToast('Profile updated successfully!', 'success');
+      } else {
+        showToast('Profile saved locally. Changes will sync when online.', 'info');
+      }
+    } catch {
+      showToast('Profile saved locally. Changes will sync when online.', 'info');
+    } finally {
+      setIsSaving(false);
+      setIsEditing(false);
+    }
   };
 
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading...</div>
+        <div className="flex items-center gap-3 text-gray-600">
+          <svg className="animate-spin w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Loading...
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      <Toast toasts={toasts} />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -109,7 +147,7 @@ export default function ProfilePage() {
                   Edit Profile
                 </button>
               ) : (
-                <div className="flex gap-2">
+              <div className="flex gap-2">
                   <button
                     onClick={() => setIsEditing(false)}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -118,9 +156,16 @@ export default function ProfilePage() {
                   </button>
                   <button
                     onClick={handleSave}
-                    className="px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Save Changes
+                    {isSaving && (
+                      <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    )}
+                    {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               )}

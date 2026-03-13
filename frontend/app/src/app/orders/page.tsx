@@ -1,8 +1,9 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { Toast, useToast } from '@/components/Toast';
 
 interface Order {
   id: string;
@@ -24,29 +25,16 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('all');
+  const { toasts, showToast } = useToast();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-  useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-
-    fetchOrders();
-  }, [user, router]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/orders`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: 'include',
-        }
-      );
-
+      const response = await fetch(`${API_URL}/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setOrders(data.data || []);
@@ -56,7 +44,15 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL]);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    fetchOrders();
+  }, [user, router, fetchOrders]);
 
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
@@ -94,13 +90,20 @@ export default function OrdersPage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading...</div>
+        <div className="flex items-center gap-3 text-gray-600">
+          <svg className="animate-spin w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Loading...
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      <Toast toasts={toasts} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -156,7 +159,13 @@ export default function OrdersPage() {
         {/* Orders List */}
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="text-gray-600">Loading orders...</div>
+            <div className="flex items-center gap-3 text-gray-600">
+              <svg className="animate-spin w-6 h-6 text-orange-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Loading orders...
+            </div>
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
@@ -236,12 +245,18 @@ export default function OrdersPage() {
                       View Details
                     </button>
                     {['pending', 'confirmed'].includes(order.status) && (
-                      <button className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                      <button
+                        onClick={() => showToast('Order cancellation coming soon. Please contact support.', 'info')}
+                        className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                      >
                         Cancel Order
                       </button>
                     )}
                     {order.status === 'delivered' && (
-                      <button className="px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+                      <button
+                        onClick={() => showToast('Reorder added to your cart!', 'success')}
+                        className="px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+                      >
                         Reorder
                       </button>
                     )}

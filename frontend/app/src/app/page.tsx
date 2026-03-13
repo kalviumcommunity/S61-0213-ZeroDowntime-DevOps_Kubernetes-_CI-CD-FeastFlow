@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import RestaurantCard from '@/components/RestaurantCard';
 import { restaurants } from '@/data/restaurants';
 
@@ -8,10 +9,31 @@ const categories = ['All', 'Japanese', 'Italian', 'American', 'Indian', 'Mexican
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const restaurantsSectionRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
-  const filteredRestaurants = selectedCategory === 'All'
-    ? restaurants
-    : restaurants.filter(r => r.cuisine === selectedCategory);
+  // Sync search term from URL param (from header search)
+  useEffect(() => {
+    const q = searchParams.get('search') || '';
+    const id = window.setTimeout(() => {
+      setSearchTerm(q);
+      if (q) {
+        setSelectedCategory('All');
+        window.setTimeout(() => restaurantsSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [searchParams]);
+
+  const filteredRestaurants = restaurants.filter((r) => {
+    const matchesCategory = selectedCategory === 'All' || r.cuisine === selectedCategory;
+    const matchesSearch = !searchTerm || 
+      r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.cuisine.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -34,7 +56,10 @@ export default function Home() {
           <p className="text-gray-200 text-base mb-8 max-w-xl">
             Real-time menus. Dynamic pricing. Thousands of restaurants at your fingertips.
           </p>
-          <button className="flex items-center gap-2 px-6 py-3.5 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors w-fit shadow-lg">
+          <button
+            onClick={() => restaurantsSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+            className="flex items-center gap-2 px-6 py-3.5 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors w-fit shadow-lg"
+          >
             Explore Restaurants
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -65,19 +90,39 @@ export default function Home() {
       </div>
 
       {/* Restaurant Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div ref={restaurantsSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Restaurants in New York</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {searchTerm ? `Results for "${searchTerm}"` : 'Restaurants in New York'}
+          </h2>
           <p className="text-gray-600">
-            {filteredRestaurants.length} restaurants available • Prices update in real-time
+            {filteredRestaurants.length} restaurant{filteredRestaurants.length !== 1 ? 's' : ''} available • Prices update in real-time
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRestaurants.map((restaurant) => (
-            <RestaurantCard key={restaurant.id} restaurant={restaurant} />
-          ))}
-        </div>
+        {filteredRestaurants.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No restaurants found</h3>
+            <p className="text-gray-600 mb-4">No {selectedCategory} restaurants available right now.</p>
+            <button
+              onClick={() => setSelectedCategory('All')}
+              className="px-5 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+            >
+              Show all restaurants
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredRestaurants.map((restaurant) => (
+              <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
