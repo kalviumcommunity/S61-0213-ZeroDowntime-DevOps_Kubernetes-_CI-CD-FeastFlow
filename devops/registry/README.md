@@ -27,6 +27,46 @@ This directory contains scripts and documentation for managing Docker images and
 - **[verify-security.ps1](verify-security.ps1)** - Security verification (Windows)
 
 ## Quick Start for Local Development
+
+## 🐳 Using Docker Hub
+
+Docker Hub is a cloud-based registry for storing and sharing container images. In this project, Docker Hub is used to push, pull, and manage images for CI/CD workflows.
+
+### Basic Usage
+
+1. **Login to Docker Hub**
+	```
+	docker login
+	```
+	Enter your Docker Hub username and password or use a personal access token.
+
+2. **Build an Image**
+	```
+	docker build -t <username>/<repo>:<tag> .
+	```
+
+3. **Tag an Image**
+	```
+	docker tag <local-image> <username>/<repo>:<tag>
+	```
+
+4. **Push to Docker Hub**
+	```
+	docker push <username>/<repo>:<tag>
+	```
+
+5. **Pull from Docker Hub**
+	```
+	docker pull <username>/<repo>:<tag>
+	```
+
+### Best Practices
+- Use secure credentials and GitHub Secrets for automation
+- Tag images with meaningful version numbers
+- Remove unused images to save space
+- Review [dockerhub-usage.md](dockerhub-usage.md) for advanced workflows and troubleshooting
+
+---
 ## 💾 Persistence in Registry Operations
 
 Persistence ensures that Docker images and registry data are reliably stored and remain available across container restarts, deployments, and system failures. In DevOps pipelines, persistent storage is critical for:
