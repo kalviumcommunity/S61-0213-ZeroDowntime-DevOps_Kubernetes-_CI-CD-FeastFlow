@@ -91,18 +91,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
       {/* Sidebar */}
       <aside className={`bg-white border-r border-gray-200 flex flex-col transition-all ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
         {/* Admin Profile */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
-              F
+            <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold shrink-0">
+              {user.firstName[0]}{user.lastName[0]}
             </div>
             {!isSidebarCollapsed && (
-              <div>
-                <h3 className="font-bold text-gray-900">Admin</h3>
+              <div className="overflow-hidden">
+                <h3 className="font-bold text-gray-900 truncate">{user.firstName} {user.lastName}</h3>
+                <p className="text-xs text-gray-500 truncate">{user.email}</p>
               </div>
             )}
           </div>

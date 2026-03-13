@@ -1,8 +1,10 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 
 export default function CartOverlay() {
+  const router = useRouter();
   const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, clearCart, getTotal } = useCart();
 
   if (!isCartOpen) return null;
@@ -24,6 +26,11 @@ export default function CartOverlay() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
             <h2 className="text-xl font-bold text-gray-900">Your Order</h2>
+            {cart.length > 0 && (
+              <span className="bg-orange-100 text-orange-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                {cart.reduce((s, i) => s + i.quantity, 0)} items
+              </span>
+            )}
           </div>
           <button
             onClick={() => setIsCartOpen(false)}
@@ -94,12 +101,27 @@ export default function CartOverlay() {
         {/* Footer */}
         {cart.length > 0 && (
           <div className="border-t p-6 space-y-4">
-            <div className="flex justify-between items-center text-lg">
-              <span className="text-gray-600">Subtotal</span>
+            <div className="space-y-3">
+            <div className="flex justify-between items-center text-sm text-gray-600">
+              <span>Subtotal</span>
+              <span>${getTotal().toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm text-gray-600">
+              <span>Delivery fee</span>
+              <span className="text-green-600 font-medium">Calculated at checkout</span>
+            </div>
+            <div className="flex justify-between items-center text-lg border-t pt-3">
+              <span className="font-semibold text-gray-900">Estimated total</span>
               <span className="font-bold text-gray-900">${getTotal().toFixed(2)}</span>
             </div>
-            <button className="w-full py-4 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors">
-              Checkout • ${getTotal().toFixed(2)}
+            <button
+              onClick={() => {
+                setIsCartOpen(false);
+                router.push('/orders');
+              }}
+              className="w-full py-4 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors"
+            >
+              Proceed to Checkout • ${getTotal().toFixed(2)}
             </button>
             <button
               onClick={clearCart}
@@ -107,6 +129,7 @@ export default function CartOverlay() {
             >
               Clear cart
             </button>
+          </div>
           </div>
         )}
       </div>

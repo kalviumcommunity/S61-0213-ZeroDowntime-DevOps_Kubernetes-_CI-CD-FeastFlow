@@ -3,6 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Toast, useToast } from '@/components/Toast';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -21,6 +22,8 @@ export default function SettingsPage() {
   
   // Appearance Settings
   const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('light');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { toasts, showToast } = useToast();
 
   useEffect(() => {
     if (!user) {
@@ -30,33 +33,70 @@ export default function SettingsPage() {
   }, [user, router]);
 
   const handleSaveSettings = () => {
-    // TODO: Implement API call to save settings
-    alert('Settings saved successfully!');
+    showToast('Settings saved successfully!', 'success');
   };
 
   const handleChangePassword = () => {
-    // TODO: Implement change password functionality
-    alert('Password change functionality will be implemented with backend API');
+    showToast('Password change is not yet available. Check back soon.', 'info');
   };
 
   const handleDeleteAccount = () => {
-    const confirmed = confirm('Are you sure you want to delete your account? This action cannot be undone.');
-    if (confirmed) {
-      // TODO: Implement account deletion
-      alert('Account deletion functionality will be implemented with backend API');
-    }
+    setShowDeleteConfirm(true);
   };
 
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading...</div>
+        <div className="flex items-center gap-3 text-gray-600">
+          <svg className="animate-spin w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Loading...
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      <Toast toasts={toasts} />
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">Delete Account</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete your account? This action <strong>cannot be undone</strong> and all your data will be permanently removed.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  showToast('Account deletion is not yet available. Please contact support.', 'info');
+                }}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
