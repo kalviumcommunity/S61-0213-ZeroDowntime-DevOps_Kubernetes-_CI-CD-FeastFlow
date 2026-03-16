@@ -593,3 +593,39 @@ kubectl top nodes
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [12-Factor App Methodology](https://12factor.net/)
 - [Cloud Native Computing Foundation](https://www.cncf.io/)
+
+
+# Zero-Downtime Deployment Concept
+
+This project demonstrates how to deliver application updates on Kubernetes without interrupting user traffic.
+
+## What zero-downtime means
+
+Zero downtime means users can continue sending requests while a new application version is being deployed.
+
+## How this project applies it
+
+- Uses Kubernetes Deployments with rolling updates.
+- Keeps old pods serving traffic while new pods become ready.
+- Switches traffic only to healthy pods through Services.
+- Uses readiness probes to avoid routing traffic to unready containers.
+- Supports horizontal scaling (HPA) for handling variable load.
+
+## Key Kubernetes ideas involved
+
+- Deployment strategy: RollingUpdate
+- Pod health checks: readiness and liveness probes
+- Stable networking: ClusterIP/Service abstraction
+- Controlled rollout and rollback with deployment revisions
+
+## Why this matters for FeastFlow
+
+- Reduces user-facing interruptions during releases.
+- Makes CI/CD safer by minimizing deployment risk.
+- Improves reliability and confidence in frequent releases.
+
+## Related project areas
+
+- Kubernetes manifests in the devops and helm chart folders
+- Rollout demo and scaling scripts in the kubernetes folder
+- Backend and frontend containerized deployment flow
