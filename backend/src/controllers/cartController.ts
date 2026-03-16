@@ -4,6 +4,7 @@ import pool from '../database/db';
 
 // Get user's cart
 export const getCart = async (req: AuthRequest, res: Response) => {
+    console.log('[getCart] userId:', req.user?.id);
   try {
     const userId = req.user?.id;
 
@@ -48,6 +49,7 @@ export const getCart = async (req: AuthRequest, res: Response) => {
 
 // Add item to cart
 export const addToCart = async (req: AuthRequest, res: Response) => {
+    console.log('[addToCart] userId:', req.user?.id, 'menuItemId:', req.body.menuItemId);
   try {
     const userId = req.user?.id;
     const {
@@ -76,28 +78,15 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
     );
 
     let cartId: string;
-    let currentRestaurantId: string | null = null;
-
     if (cartResult.rows.length === 0) {
-      // Create new cart
+      // Create new cart (restaurant_id is now optional or can be set to null)
       cartResult = await pool.query(
-        'INSERT INTO cart (user_id, restaurant_id) VALUES ($1, $2) RETURNING *',
-        [userId, restaurantId]
+        'INSERT INTO cart (user_id) VALUES ($1) RETURNING *',
+        [userId]
       );
       cartId = cartResult.rows[0].id;
     } else {
       cartId = cartResult.rows[0].id;
-      currentRestaurantId = cartResult.rows[0].restaurant_id;
-
-      // Check if adding from different restaurant
-      if (currentRestaurantId && currentRestaurantId !== restaurantId) {
-        // Clear cart and update restaurant
-        await pool.query('DELETE FROM cart_items WHERE cart_id = $1', [cartId]);
-        await pool.query('UPDATE cart SET restaurant_id = $1 WHERE id = $2', [restaurantId, cartId]);
-      } else if (!currentRestaurantId) {
-        // Update restaurant_id if not set
-        await pool.query('UPDATE cart SET restaurant_id = $1 WHERE id = $2', [restaurantId, cartId]);
-      }
     }
 
     // Check if item already exists
@@ -137,6 +126,7 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
 
 // Update cart item quantity
 export const updateCartItem = async (req: AuthRequest, res: Response) => {
+    console.log('[updateCartItem] userId:', req.user?.id, 'itemId:', req.params.itemId, 'quantity:', req.body.quantity);
   try {
     const userId = req.user?.id;
     const { itemId } = req.params;
@@ -198,6 +188,7 @@ export const updateCartItem = async (req: AuthRequest, res: Response) => {
 
 // Remove item from cart
 export const removeFromCart = async (req: AuthRequest, res: Response) => {
+    console.log('[removeFromCart] userId:', req.user?.id, 'itemId:', req.params.itemId);
   try {
     const userId = req.user?.id;
     const { itemId } = req.params;
@@ -240,6 +231,7 @@ export const removeFromCart = async (req: AuthRequest, res: Response) => {
 
 // Clear cart
 export const clearCart = async (req: AuthRequest, res: Response) => {
+    console.log('[clearCart] userId:', req.user?.id);
   try {
     const userId = req.user?.id;
 
