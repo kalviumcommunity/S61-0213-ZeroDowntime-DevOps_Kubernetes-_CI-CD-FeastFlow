@@ -1,5 +1,5 @@
 import { Pool, PoolConfig } from 'pg';
-import dotenv from 'dotenv';
+const dotenv = require('dotenv');
 
 dotenv.config();
 

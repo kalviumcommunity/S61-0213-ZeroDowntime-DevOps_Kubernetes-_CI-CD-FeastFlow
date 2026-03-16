@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 import { query } from '../database/db';
 import { RegisterDTO, LoginDTO, UserRole, AuthRequest } from '../types';
 
@@ -15,10 +15,9 @@ const getJwtSecret = (): string => {
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
 // Generate JWT Token
-const generateToken = (id: string, email: string, role: UserRole): string => {
+export const generateToken = (id: string, email: string, role: UserRole): string => {
   const payload = { id, email, role };
   const expire = process.env.JWT_EXPIRE || '7d';
-  
   return jwt.sign(payload, getJwtSecret(), { expiresIn: expire as any });
 };
 
@@ -101,13 +100,17 @@ export const register = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Block privilege escalation from public registration flow.
-    const userRole = UserRole.CUSTOMER;
-    if (role && role !== UserRole.CUSTOMER) {
-      return res.status(403).json({
-        success: false,
-        message: 'Registration with elevated roles is not allowed',
-      });
+
+    // Allow public registration as restaurant_owner, but not admin
+    let userRole = UserRole.CUSTOMER;
+    if (role && Object.values(UserRole).includes(role)) {
+      if (role === UserRole.ADMIN) {
+        return res.status(403).json({
+          success: false,
+          message: 'Registration as admin is not allowed',
+        });
+      }
+      userRole = role;
     }
 
     const result = await query(

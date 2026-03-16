@@ -6,25 +6,23 @@ export enum UserRole {
   ADMIN = 'admin'
 }
 
+
+// Allow partial user for req.user (for middleware)
 export interface User {
   id: string;
   email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
   role: UserRole;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
   phoneNumber?: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: UserRole;
-  };
+  user?: User;
 }
 
 export interface JWTPayload {
