@@ -1,6 +1,6 @@
 ################################################################################################
 # Docker Compose Configuration for FeastFlow
-# 
+#
 # Architecture Context:
 # =====================
 # This Docker Compose file orchestrates FeastFlow locally using Docker's built-in
@@ -19,7 +19,7 @@
 
 services:
   # PostgreSQL Database
-  # 
+  #
   # Kubernetes Equivalent: StatefulSet (devops/kubernetes/04-postgres-deployment.yaml)
   #
   # Architectural Role:
@@ -170,7 +170,7 @@ services:
 
 volumes:
   # Persistent storage for PostgreSQL
-  # 
+  #
   # Docker Compose: Local volume (on host machine at /var/lib/docker/volumes/)
   # Kubernetes: PersistentVolume (can be NFS, cloud storage, local, etc.)
   #
