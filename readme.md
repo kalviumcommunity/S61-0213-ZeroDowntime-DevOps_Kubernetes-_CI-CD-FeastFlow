@@ -1,3 +1,27 @@
+# Feast Flow: Zero-Downtime DevOps Platform
+
+**Feast Flow** is a cloud-native DevOps project designed to eliminate service disruptions during application updates for restaurant platforms. It enables zero-downtime deployments, real-time updates, and scalable infrastructure using Kubernetes, Docker, and automated CI/CD pipelines.
+
+## What This Project Contains
+
+- **Microservices** for pricing, menu, order, and admin
+- **Frontend UIs** for customers and admins
+- **Kubernetes manifests** and **Helm charts** for deployment
+- **CI/CD pipelines** (GitHub Actions) for automated builds and releases
+- **Observability stack** (Prometheus, Grafana, Loki)
+- **Scripts** for local development and registry management
+
+## Solution Flow
+
+1. **Code change** triggers CI pipeline
+2. **Docker images** are built and pushed to a registry
+3. **CD pipeline** deploys new images to Kubernetes
+4. **Kubernetes** performs rolling or canary updates with zero downtime
+5. **Real-time updates** are delivered via Kafka and Redis
+6. **Monitoring** ensures reliability and fast recovery
+
+---
+
 Project Overview
 
 This project solves the problem of service disruption during deployments.
