@@ -2,10 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+import { useToast } from '@/components/Toast';
 
 export default function CartOverlay() {
   const router = useRouter();
-  const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, clearCart, getTotal } = useCart();
+  const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, clearCart, getTotal, createOrder } = useCart();
+  const { showToast } = useToast();
 
   if (!isCartOpen) return null;
 
@@ -115,8 +117,10 @@ export default function CartOverlay() {
               <span className="font-bold text-gray-900">${getTotal().toFixed(2)}</span>
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
+                await createOrder();
                 setIsCartOpen(false);
+                showToast('Payment implementation in progress', 'info');
                 router.push('/orders');
               }}
               className="w-full py-4 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors"

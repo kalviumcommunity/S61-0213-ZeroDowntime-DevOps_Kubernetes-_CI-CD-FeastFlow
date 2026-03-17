@@ -28,23 +28,17 @@ export default function OrdersPage() {
   const { toasts, showToast } = useToast();
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-  const fetchOrders = useCallback(async () => {
+  // Frontend-only: Load orders from localStorage
+  const fetchOrders = useCallback(() => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: 'include',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data.data || []);
-      }
+      const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+      setOrders(orders);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     } finally {
       setLoading(false);
     }
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => {
     if (!user) {

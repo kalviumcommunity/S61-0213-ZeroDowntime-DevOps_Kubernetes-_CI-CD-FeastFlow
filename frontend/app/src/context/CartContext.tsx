@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { CartItem, MenuItem, Restaurant } from '@/types';
 import { useAuth } from './AuthContext';
 
+
 interface CartContextType {
   cart: CartItem[];
   addToCart: (item: MenuItem, restaurant: Restaurant) => void;
@@ -13,24 +14,27 @@ interface CartContextType {
   getTotal: () => number;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
+  createOrder: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+    // ...existing code...
+    // (move loadCart below user and API_URL declarations)
+  const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const { user } = useAuth();
-
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+  // Load cart from backend and update state, with debug logging
   const loadCart = useCallback(async () => {
     const token = localStorage.getItem('token');
-    
-    if (!token) {
+    if (!token || !user) {
+      setCart([]);
+      console.warn('[CartContext] No token or user, cart cleared.');
       return;
     }
-
     try {
       const response = await fetch(`${API_URL}/cart`, {
         headers: {
@@ -38,41 +42,55 @@ export function CartProvider({ children }: { children: ReactNode }) {
         },
         credentials: 'include',
       });
-
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data.items) {
-          interface BackendCartItem {
-            menu_item_id: string;
-            menu_item_name: string;
-            menu_item_price: string;
-            menu_item_description: string;
-            menu_item_category: string;
-            restaurant_id: string;
-            restaurant_name: string;
-            quantity: number;
-          }
-          // Convert backend format to frontend format
-          const cartItems: CartItem[] = data.data.items.map((item: BackendCartItem) => ({
-            menuItem: {
-              id: item.menu_item_id,
-              name: item.menu_item_name,
-              price: parseFloat(item.menu_item_price),
-              description: item.menu_item_description,
-              category: item.menu_item_category,
-            },
-            restaurant: {
-              id: item.restaurant_id,
-              name: item.restaurant_name,
-            },
-            quantity: item.quantity,
-          }));
-          setCart(cartItems);
-        }
+        setCart(data.cart || []);
+        console.log('[CartContext] Cart loaded from backend:', data.cart);
+      } else {
+        setCart([]);
+        const errMsg = `[CartContext] Failed to load cart: ${response.status} ${response.statusText}`;
+        console.error(errMsg);
+        alert('Failed to load cart. Please try again.');
       }
     } catch (error) {
-      console.error('Error loading cart from backend:', error);
+      console.error('[CartContext] Error loading cart from backend:', error);
+      setCart([]);
+      alert('Error loading cart. Please check your connection.');
     }
+  }, [API_URL, user]);
+
+  // Simulate order creation (frontend only)
+  const createOrder = async () => {
+
+    if (!user || cart.length === 0) return;
+    const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    const newOrder = {
+      id: Date.now().toString(),
+      restaurantName: cart[0].restaurant.name,
+      items: cart.map(item => ({
+        name: item.menuItem.name,
+        quantity: item.quantity,
+        price: item.menuItem.price
+      })),
+      total: getTotal(),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      deliveryAddress: user.address || 'N/A',
+    };
+    localStorage.setItem('orders', JSON.stringify([newOrder, ...orders]));
+    setCart([]);
+  };
+
+  // Load cart from backend when API_URL changes
+  useEffect(() => {
+    const loadCart = async () => {
+      try {
+        // ...your cart loading logic here...
+      } catch (error) {
+        console.error('Error loading cart from backend:', error);
+      }
+    };
+    // Optionally call loadCart here if needed
   }, [API_URL]);
 
   // Load cart from backend when user logs in
@@ -97,6 +115,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     if (!token || !user) {
       alert('Please log in to add items to cart');
+      console.warn('[CartContext] Tried to add to cart without user or token.');
       return;
     }
 
@@ -124,12 +143,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Reload cart from backend
         await loadCart();
         setIsCartOpen(true);
+        console.log('[CartContext] Item added to cart:', menuItem.name);
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to add item to cart');
+        const errMsg = data.message || 'Failed to add item to cart';
+        alert(errMsg);
+        console.error('[CartContext] Failed to add item to cart:', errMsg);
       }
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error('[CartContext] Error adding to cart:', error);
       alert('Failed to add item to cart. Please try again.');
     }
   };
@@ -233,6 +255,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         getTotal,
         isCartOpen,
         setIsCartOpen,
+        createOrder,
       }}
     >
       {children}
