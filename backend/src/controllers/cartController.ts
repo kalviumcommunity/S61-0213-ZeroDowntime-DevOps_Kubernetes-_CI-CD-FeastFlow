@@ -34,12 +34,24 @@ export const getCart = async (req: AuthRequest, res: Response) => {
       [cartId]
     );
 
+    // Return cart items as 'cart' array for frontend compatibility
+    // Map DB rows to frontend's expected cart item structure
     res.status(200).json({
       success: true,
-      data: {
-        cart: cartResult.rows[0],
-        items: itemsResult.rows,
-      },
+      cart: itemsResult.rows.map(row => ({
+        menuItem: {
+          id: row.menu_item_id,
+          name: row.menu_item_name,
+          description: row.menu_item_description,
+          price: Number(row.menu_item_price), // Ensure price is a number
+          category: row.menu_item_category,
+        },
+        restaurant: {
+          id: row.restaurant_id,
+          name: row.restaurant_name,
+        },
+        quantity: row.quantity,
+      })),
     });
   } catch (error) {
     console.error('Get cart error:', error);
@@ -50,6 +62,10 @@ export const getCart = async (req: AuthRequest, res: Response) => {
 // Add item to cart
 export const addToCart = async (req: AuthRequest, res: Response) => {
     console.log('[addToCart] userId:', req.user?.id, 'menuItemId:', req.body.menuItemId);
+    // UUID validation helper
+    const isValidUUID = (uuid: string) => {
+      return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid);
+    };
   try {
     const userId = req.user?.id;
     const {
@@ -62,6 +78,14 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
       restaurantName,
       quantity = 1,
     } = req.body;
+
+    // Validate UUIDs
+    if (!isValidUUID(menuItemId)) {
+      return res.status(400).json({ success: false, message: 'Invalid menuItemId (must be UUID)' });
+    }
+    if (!isValidUUID(restaurantId)) {
+      return res.status(400).json({ success: false, message: 'Invalid restaurantId (must be UUID)' });
+    }
 
     if (!userId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
