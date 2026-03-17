@@ -26,7 +26,6 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('all');
   const { toasts, showToast } = useToast();
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
   // Frontend-only: Load orders from localStorage
   const fetchOrders = useCallback(() => {

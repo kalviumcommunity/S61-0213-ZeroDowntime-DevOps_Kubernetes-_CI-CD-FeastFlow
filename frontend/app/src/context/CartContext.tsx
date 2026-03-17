@@ -64,8 +64,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     if (!user || cart.length === 0) return;
     const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    // Use a stable id for newOrder (e.g., use a UUID or timestamp generated here, not during render)
     const newOrder = {
-      id: Date.now().toString(),
+      id: `${Date.now()}`,
       restaurantName: cart[0].restaurant.name,
       items: cart.map(item => ({
         name: item.menuItem.name,
@@ -81,17 +82,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart([]);
   };
 
-  // Load cart from backend when API_URL changes
-  useEffect(() => {
-    const loadCart = async () => {
-      try {
-        // ...your cart loading logic here...
-      } catch (error) {
-        console.error('Error loading cart from backend:', error);
-      }
-    };
-    // Optionally call loadCart here if needed
-  }, [API_URL]);
+  // (Removed unused loadCart in effect)
 
   // Load cart from backend when user logs in
   useEffect(() => {
