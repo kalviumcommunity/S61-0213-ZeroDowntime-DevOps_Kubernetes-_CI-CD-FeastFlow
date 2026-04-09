@@ -118,28 +118,28 @@ export const menuItems: Record<string, MenuItem[]> = {
       isPopular: true
     },
     {
-      id: '2-3',
+      id: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d73',
       name: 'Spaghetti Carbonara',
       description: 'Eggs, pecorino, guanciale, black pepper',
       price: 14.99,
       category: 'Pasta'
     },
     {
-      id: '2-4',
+      id: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d74',
       name: 'Fettuccine Alfredo',
       description: 'Cream, parmesan, butter, garlic',
       price: 13.99,
       category: 'Pasta'
     },
     {
-      id: '2-5',
+      id: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d75',
       name: 'Bruschetta',
       description: 'Tomatoes, garlic, basil, olive oil on toasted bread',
       price: 6.99,
       category: 'Starters'
     },
     {
-      id: '2-6',
+      id: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d76',
       name: 'Tiramisu',
       description: 'Classic Italian dessert with espresso and mascarpone',
       price: 7.99,
